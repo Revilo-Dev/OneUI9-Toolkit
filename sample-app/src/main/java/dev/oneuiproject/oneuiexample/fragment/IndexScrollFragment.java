@@ -1,10 +1,13 @@
 package dev.oneuiproject.oneuiexample.fragment;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.Configuration;
 import android.database.MatrixCursor;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -17,6 +20,8 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
+import android.widget.FrameLayout;
+import com.google.android.material.appbar.AppBarLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,6 +47,10 @@ public class IndexScrollFragment extends BaseFragment {
     private int mCurrentSectionIndex = 0;
     private RecyclerView mListView;
     private SeslIndexScrollView mIndexScrollView;
+    private FrameLayout mOverlay;
+    private TextView mSectionLabel;
+    private ToolbarLayout mToolbarLayout;
+    private AppBarLayout.OnOffsetChangedListener mHeaderListener;
 
     private boolean mIsTextModeEnabled = false;
     private boolean mIsIndexBarPressed = false;
@@ -49,6 +58,7 @@ public class IndexScrollFragment extends BaseFragment {
         @Override
         public void run() {
             IndexScrollUtils.animateVisibility(mIndexScrollView, false);
+            if (mSectionLabel != null) mSectionLabel.setVisibility(View.GONE);
         }
     };
 
@@ -62,19 +72,66 @@ public class IndexScrollFragment extends BaseFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mIndexScrollView = view.findViewById(R.id.indexscroll_view);
-        ToolbarLayout toolbar = requireActivity().findViewById(R.id.drawerLayout);
-        toolbar.addFloatingOverlay(mIndexScrollView);
+        mOverlay = view.findViewById(R.id.indexscroll_overlay);
+        mSectionLabel = view.findViewById(R.id.indexscroll_section_label);
+        GradientDrawable labelSurface = new GradientDrawable();
+        labelSurface.setColor(OneUIPalette.color(requireContext(), R.color.oui_floating_nav_surface));
+        labelSurface.setCornerRadius(28 * getResources().getDisplayMetrics().density);
+        mSectionLabel.setBackground(labelSurface);
+        mToolbarLayout = requireActivity().findViewById(R.id.drawerLayout);
+        mToolbarLayout.addFloatingOverlay(mOverlay);
+        mHeaderListener = (bar, offset) -> updateOverlayTop();
+        mToolbarLayout.getAppBarLayout().addOnOffsetChangedListener(mHeaderListener);
+        mOverlay.post(this::updateOverlayTop);
         initListView(view);
         initIndexScroll();
     }
 
+    @Override public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (mToolbarLayout == null || mOverlay == null) return;
+        if (hidden) {
+            if (mListView != null) mListView.removeCallbacks(mHideIndexBar);
+            mToolbarLayout.removeFloatingOverlay(mOverlay);
+        } else {
+            mToolbarLayout.addFloatingOverlay(mOverlay);
+            mOverlay.post(this::updateOverlayTop);
+        }
+    }
+
     @Override public void onDestroyView() {
-        ToolbarLayout toolbar = requireActivity().findViewById(R.id.drawerLayout);
-        if (toolbar != null && mIndexScrollView != null)
-            toolbar.removeFloatingOverlay(mIndexScrollView);
+        if (mToolbarLayout != null && mHeaderListener != null)
+            mToolbarLayout.getAppBarLayout().removeOnOffsetChangedListener(mHeaderListener);
+        if (mToolbarLayout != null && mOverlay != null)
+            mToolbarLayout.removeFloatingOverlay(mOverlay);
+        mListView.removeCallbacks(mHideIndexBar);
+        mOverlay = null;
+        mSectionLabel = null;
+        mToolbarLayout = null;
         mIndexScrollView = null;
         mListView = null;
         super.onDestroyView();
+    }
+
+    private void updateOverlayTop() {
+        if (mOverlay == null || mToolbarLayout == null) return;
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mOverlay.getLayoutParams();
+        int top = mToolbarLayout.getVisibleHeaderHeight()
+                + Math.round(8 * getResources().getDisplayMetrics().density);
+        if (params.topMargin != top) {
+            params.topMargin = top;
+            mOverlay.setLayoutParams(params);
+        }
+    }
+
+    private void showSectionLabel(int index) {
+        if (mSectionLabel == null || mListView == null) return;
+        Object[] sections = ((IndexAdapter) mListView.getAdapter()).getSections();
+        if (index >= 0 && index < sections.length) {
+            String section = String.valueOf(sections[index]);
+            mSectionLabel.setText(section);
+            mSectionLabel.setVisibility(section.isEmpty() ? View.GONE : View.VISIBLE);
+        }
     }
 
     @Override
@@ -149,7 +206,7 @@ public class IndexScrollFragment extends BaseFragment {
         mListView.setItemAnimator(null);
         mListView.seslSetFillBottomEnabled(true);
         mListView.seslSetLastRoundedCorner(true);
-        mListView.seslSetIndexTipEnabled(true);
+        mListView.seslSetIndexTipEnabled(false);
         mListView.seslSetGoToTopEnabled(false);
         ((dev.oneuiproject.oneui.widget.FloatingScrollToTopButton)
                 view.findViewById(R.id.indexscroll_scroll_top)).bind(mListView);
@@ -181,6 +238,7 @@ public class IndexScrollFragment extends BaseFragment {
                 new SeslIndexScrollView.OnIndexBarEventListener() {
                     @Override
                     public void onIndexChanged(int sectionIndex) {
+                        showSectionLabel(sectionIndex);
                         if (mCurrentSectionIndex != sectionIndex) {
                             mCurrentSectionIndex = sectionIndex;
                             if (mListView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE) {
@@ -195,11 +253,15 @@ public class IndexScrollFragment extends BaseFragment {
                     public void onPressed(float v) {
                         mIsIndexBarPressed = true;
                         mListView.removeCallbacks(mHideIndexBar);
+                        showSectionLabel(mCurrentSectionIndex);
                     }
 
                     @Override
                     public void onReleased(float v) {
                         mIsIndexBarPressed = false;
+                        mSectionLabel.postDelayed(() -> {
+                            if (mSectionLabel != null) mSectionLabel.setVisibility(View.GONE);
+                        }, 700);
                         if (mListView.getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
                             mListView.postDelayed(mHideIndexBar, 1500);
                         }

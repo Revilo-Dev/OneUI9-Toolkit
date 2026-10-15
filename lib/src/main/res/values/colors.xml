@@ -5,8 +5,9 @@
 
     <color name="oui_floating_nav_surface">#FFFFFFFF</color>
     <color name="oui_floating_nav_glass">#F4FFFFFF</color>
-    <color name="oui_floating_nav_selected">#FFE4E4E4</color>
-    <color name="oui_floating_nav_press">#12000000</color>
+    <color name="oui_search_glass">#C8FFFFFF</color>
+    <color name="oui_floating_nav_selected">#33000000</color>
+    <color name="oui_floating_nav_press">#33000000</color>
     <color name="oui_floating_nav_primary">#FF17151A</color>
     <color name="oui_floating_nav_secondary">#FF666169</color>
     <color name="oui_floating_toolbar_light">#FFFFFFFF</color>
@@ -68,7 +69,9 @@
     <!-- DrawerLayout -->
     <color name="oui_glass_surface">#F4FFFFFF</color>
     <color name="oui_drawerlayout_drawer_dim_color">#33000000</color>
-    <color name="oui_drawer_glass_tint">#C8FFFFFF</color>
+    <color name="oui_drawer_glass_tint">@color/oui_glass_surface</color>
+    <color name="oui_drawer_panel_fade">@color/oui_floating_nav_surface</color>
+    <color name="oui_ai_secondary_surface">#FFDDE1E6</color>
     <color name="oui_drawerlayout_header_icon_color">#ff676768</color>
 
     <!-- AppInfoLayout -->

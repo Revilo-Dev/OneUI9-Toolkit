@@ -13,15 +13,12 @@ import androidx.appcompat.widget.SwitchCompat;
 
 import com.sec.sesl.tester.R;
 
-import dev.oneuiproject.oneui.dialog.GridMenuDialog;
 import dev.oneuiproject.oneui.widget.FloatingNavigationBar;
 import dev.oneuiproject.oneui.widget.NavigationPageContainer;
 import dev.oneuiproject.oneuiexample.base.BaseFragment;
 import dev.oneuiproject.oneuiexample.activity.MainActivity;
 
 public class TabsFragment extends BaseFragment {
-    private int lastDestination = R.id.nav_grid;
-
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -31,25 +28,15 @@ public class TabsFragment extends BaseFragment {
         bar.setSelectedIcon(R.id.nav_cards, R.drawable.credit_card);
         bar.setSelectedIcon(R.id.nav_settings, R.drawable.settings);
         NavigationPageContainer pages = view.findViewById(R.id.nav_pages);
+        bar.setBackdropView(pages);
         NavigationDemoPages.populate(mContext,
                 (FrameLayout) view.findViewById(R.id.nav_grid),
                 (FrameLayout) view.findViewById(R.id.nav_list),
-                (FrameLayout) view.findViewById(R.id.nav_cards));
-        GridMenuDialog menu = new GridMenuDialog(mContext);
-        menu.inflateMenu(R.menu.sample3_tabs_grid_menu);
-        menu.setOnItemClickListener(item -> true);
-
+                (FrameLayout) view.findViewById(R.id.nav_cards),
+                (FrameLayout) view.findViewById(R.id.nav_action_cards),
+                (FrameLayout) view.findViewById(R.id.nav_shortcuts_carousel));
         bar.bindPages(pages);
         if (savedInstanceState == null) bar.setSelectedItemId(R.id.nav_grid);
-        lastDestination = bar.getSelectedItemId();
-        bar.setOnItemSelectedListener(itemId -> {
-            if (itemId == R.id.nav_menu) {
-                bar.setSelectedItemId(lastDestination);
-                menu.show();
-                return;
-            }
-            lastDestination = itemId;
-        });
 
         SwitchCompat blur = view.findViewById(R.id.nav_toggle_blur);
         blur.setChecked(bar.isBlurEnabled());
@@ -85,12 +72,6 @@ public class TabsFragment extends BaseFragment {
             }
             @Override public void onNothingSelected(AdapterView<?> parent) { }
         });
-    }
-
-    @Override public void onViewStateRestored(@Nullable Bundle state) {
-        super.onViewStateRestored(state);
-        lastDestination = ((FloatingNavigationBar) requireView()
-                .findViewById(R.id.tabs_floating_nav)).getSelectedItemId();
     }
 
     @Override public int getLayoutResId() { return R.layout.sample3_fragment_tabs; }

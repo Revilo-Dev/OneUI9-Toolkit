@@ -12,7 +12,7 @@
         <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:paddingVertical="12dp">
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background" android:paddingVertical="12dp">
             <dev.oneuiproject.oneui.widget.OneUISlider
                 android:id="@+id/slider_continuous" android:layout_width="match_parent"
                 android:layout_height="48dp" android:layout_marginHorizontal="24dp"
@@ -25,7 +25,7 @@
         <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:paddingVertical="12dp">
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background" android:paddingVertical="12dp">
             <dev.oneuiproject.oneui.widget.OneUISlider
                 android:id="@+id/slider_steps" android:layout_width="match_parent"
                 android:layout_height="48dp" android:layout_marginHorizontal="24dp"
@@ -39,7 +39,7 @@
         <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:gravity="center"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background" android:gravity="center"
             android:orientation="horizontal" android:paddingVertical="16dp">
             <dev.oneuiproject.oneui.widget.OneUISlider
                 android:layout_width="48dp" android:layout_height="200dp"
@@ -57,7 +57,7 @@
         <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:orientation="vertical"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background" android:orientation="vertical"
             android:paddingVertical="12dp">
             <dev.oneuiproject.oneui.widget.OneUISlider
                 android:layout_width="match_parent" android:layout_height="48dp"
@@ -76,7 +76,7 @@
         <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:background="@color/oui_background_color"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
             android:orientation="vertical" android:padding="12dp">
             <dev.oneuiproject.oneui.widget.OneUIThickSlider
                 android:id="@+id/slider_thick_volume"
@@ -99,7 +99,7 @@
         <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:background="@color/oui_background_color"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
             android:gravity="center" android:orientation="horizontal"
             android:paddingVertical="12dp">
             <dev.oneuiproject.oneui.widget.OneUIThickSlider

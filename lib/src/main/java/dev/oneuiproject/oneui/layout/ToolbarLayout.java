@@ -98,7 +98,6 @@ public class ToolbarLayout extends LinearLayout {
     protected int mLayout;
     protected boolean mExpandable;
     protected boolean mExpanded;
-    private boolean mReserveExpandedHeader;
     protected Drawable mNavigationIcon;
     private LayerDrawable mNavigationBadgeIcon;
     protected CharSequence mTitleCollapsed;
@@ -174,7 +173,6 @@ public class ToolbarLayout extends LinearLayout {
                     R.layout.oui_layout_toolbarlayout_appbar);
             mExpandable = a.getBoolean(R.styleable.ToolbarLayout_expandable, true);
             mExpanded = a.getBoolean(R.styleable.ToolbarLayout_expanded, mExpandable);
-            mReserveExpandedHeader = mExpanded;
             mNavigationIcon = a.getDrawable(R.styleable.ToolbarLayout_navigationIcon);
             mTitleExpanded
                     = mTitleCollapsed = a.getString(R.styleable.ToolbarLayout_title);
@@ -275,16 +273,8 @@ public class ToolbarLayout extends LinearLayout {
         mActionModeStickyControls.setEnabled(mStickyActionsEnabled);
         mActionModeStickyControls.setBlurEnabled(mStickyActionBlurEnabled);
         mAppBarLayout.addOnOffsetChangedListener((bar, offset) -> {
-            int range = bar.getTotalScrollRange();
-            boolean atExpandedEnd = offset == 0 && mExpandable;
-            boolean atCollapsedEnd = range > 0 && Math.abs(offset) >= range;
-            if (atExpandedEnd || atCollapsedEnd) {
-                boolean reserveExpanded = atExpandedEnd;
-                if (mReserveExpandedHeader != reserveExpanded) {
-                    mReserveExpandedHeader = reserveExpanded;
-                    mMainContainer.post(() -> padFullBleedScrollContent(mMainContainer));
-                }
-            }
+            // Keep the viewport's content inset in step with every header pixel.
+            padFullBleedScrollContent(mMainContainer);
             updateStickyTitle();
         });
         mMainContainer.getViewTreeObserver().addOnScrollChangedListener(this::updateStickyTitle);
@@ -305,7 +295,16 @@ public class ToolbarLayout extends LinearLayout {
 
     }
 
-    /** Reserve the header once inside the scrolling content while its viewport stays full-screen. */
+    /** The visible part of the header that currently covers full-bleed page content. */
+    public int getVisibleHeaderHeight() {
+        int toolbarHeight = mMainToolbar.getHeight();
+        if (toolbarHeight <= 0) toolbarHeight = dp(56);
+        int visible = mAppBarLayout.getHeight() + mAppBarLayout.getTop();
+        if (visible <= 0) visible = mAppBarLayout.getMeasuredHeight();
+        return Math.max(toolbarHeight, visible);
+    }
+
+    /** Reserve the visible header inside each scrolling viewport. */
     private void padFullBleedScrollContent(View view) {
         if (view instanceof RecyclerView || view instanceof NestedScrollView
                 || view instanceof ScrollView || view instanceof AbsListView) {
@@ -314,11 +313,7 @@ public class ToolbarLayout extends LinearLayout {
                 padding = new int[]{view.getPaddingTop(), -1};
                 view.setTag(R.id.oui_full_bleed_padding_applied, padding);
             }
-            int toolbarHeight = mMainToolbar.getHeight();
-            if (toolbarHeight <= 0) toolbarHeight = dp(56);
-            int header = mReserveExpandedHeader && mExpandable
-                    ? Math.max(toolbarHeight, mAppBarLayout.getMeasuredHeight())
-                    : toolbarHeight;
+            int header = getVisibleHeaderHeight();
             if (padding[1] != header) {
                 view.setPadding(view.getPaddingLeft(), padding[0] + header,
                         view.getPaddingRight(), view.getPaddingBottom());
@@ -583,7 +578,6 @@ public class ToolbarLayout extends LinearLayout {
     public void setExpandable(boolean expandable) {
         if (mExpandable != expandable) {
             mExpandable = expandable;
-            if (!expandable) mReserveExpandedHeader = false;
             resetAppBar();
             mMainContainer.post(() -> padFullBleedScrollContent(mMainContainer));
         }
@@ -614,10 +608,7 @@ public class ToolbarLayout extends LinearLayout {
         if (mExpandable) {
             mExpanded = expanded;
             mAppBarLayout.setExpanded(expanded, animate);
-            if (!animate && mReserveExpandedHeader != expanded) {
-                mReserveExpandedHeader = expanded;
-                mMainContainer.post(() -> padFullBleedScrollContent(mMainContainer));
-            }
+            if (!animate) mMainContainer.post(() -> padFullBleedScrollContent(mMainContainer));
         } else
             Log.d(TAG, "setExpanded: mExpandable is " + mExpandable);
     }

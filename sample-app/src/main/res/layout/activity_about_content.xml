@@ -21,7 +21,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
             android:orientation="vertical">
 
             <dev.oneuiproject.oneuiexample.ui.widget.CardView
@@ -50,7 +50,7 @@
             android:layout_marginHorizontal="16dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/oui_background_color"
+        android:background="@color/oui_background_color" android:tag="oneui.palette.background"
         android:layout_marginBottom="20dp"
         android:orientation="vertical">
 

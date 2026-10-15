@@ -170,8 +170,9 @@ public class FloatingToolbar extends LinearLayout {
                 ? (FloatingBarSwitcher) getParent() : null;
         View source = switcher != null && switcher.getBackdropView() != null
                 ? switcher.getBackdropView() : getRootView();
-        int width = Math.max(1, (getWidth() + 5) / 6);
-        int height = Math.max(1, (getHeight() + 5) / 6);
+        int scale = BlurSettings.GLASS_SAMPLE_SCALE;
+        int width = Math.max(1, (getWidth() + scale - 1) / scale);
+        int height = Math.max(1, (getHeight() + scale - 1) / scale);
         if (backdrop == null || backdrop.getWidth() != width || backdrop.getHeight() != height) {
             if (backdrop != null) backdrop.recycle();
             backdrop = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -265,6 +266,6 @@ public class FloatingToolbar extends LinearLayout {
 
     private void notifyAction(int id) { if (listener != null) listener.onActionClick(id); }
 
-    private int color(int id) { return getResources().getColor(id, getContext().getTheme()); }
+    private int color(int id) { return OneUIPalette.color(getContext(), id); }
     private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 }

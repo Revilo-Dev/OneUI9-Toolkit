@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
@@ -56,7 +58,7 @@ public class HorizontalRadioPreference extends Preference {
         TypedValue outValue = new TypedValue();
         getContext().getTheme().resolveAttribute(R.attr.colorPrimaryDark, outValue, true);
         SELECTED_COLOR = outValue.data;
-        UNSELECTED_COLOR = getContext().getColor(R.color.oui_horizontalradiopref_text_unselected_color);
+        UNSELECTED_COLOR = OneUIPalette.color(getContext(), R.color.oui_horizontalradiopref_text_unselected_color);
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.HorizontalRadioPreference);
 

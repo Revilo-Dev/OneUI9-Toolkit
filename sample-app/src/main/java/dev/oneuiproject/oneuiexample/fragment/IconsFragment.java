@@ -1,6 +1,10 @@
 package dev.oneuiproject.oneuiexample.fragment;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
+import android.content.Intent;
+import android.speech.RecognizerIntent;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
@@ -16,6 +20,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -29,6 +35,14 @@ import dev.oneuiproject.oneui.widget.FloatingSearchBar;
 import dev.oneuiproject.oneuiexample.base.BaseFragment;
 
 public class IconsFragment extends BaseFragment {
+    private FloatingSearchBar floatingSearch;
+    private final ActivityResultLauncher<Intent> voiceSearch = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (floatingSearch == null || result.getData() == null) return;
+                ArrayList<String> matches = result.getData()
+                        .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                if (matches != null && !matches.isEmpty()) floatingSearch.setQuery(matches.get(0), true);
+            });
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -49,10 +63,17 @@ public class IconsFragment extends BaseFragment {
         iconListView.seslSetSmoothScrollEnabled(true);
 
         FloatingSearchBar search = view.findViewById(R.id.icons_floating_search);
+        floatingSearch = search;
         search.setSourceView(iconListView);
         search.setHint("Search icons");
         search.setPersistent(true);
-        search.setCloseButtonVisible(false);
+        search.setOnVoiceRequested(() -> {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            if (intent.resolveActivity(requireContext().getPackageManager()) != null)
+                voiceSearch.launch(intent);
+        });
         search.setListener(new FloatingSearchBar.Listener() {
             @Override public void onQueryChanged(String query) {
                 adapter.setQuery(query);
@@ -60,6 +81,11 @@ public class IconsFragment extends BaseFragment {
                 iconListView.scrollToPosition(0);
             }
         });
+    }
+
+    @Override public void onDestroyView() {
+        floatingSearch = null;
+        super.onDestroyView();
     }
 
     @Override public int getLayoutResId() { return R.layout.sample3_fragment_icons; }
@@ -119,7 +145,7 @@ public class IconsFragment extends BaseFragment {
             ImportedIconCatalog.Entry entry = visible.get(position);
             holder.imageView.setImageResource(entry.drawableId);
             holder.imageView.setImageTintList(entry.tintForTheme
-                    ? ColorStateList.valueOf(mContext.getColor(R.color.oui_primary_text_color))
+                    ? ColorStateList.valueOf(OneUIPalette.color(mContext, R.color.oui_primary_text_color))
                     : null);
             if (entry.tintForTheme) {
                 holder.imageView.setBackground(null);

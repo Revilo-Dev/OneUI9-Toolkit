@@ -122,7 +122,7 @@ public final class ScrollEdgeFades {
                 return color | 0xff000000;
             current = current.getParent() instanceof View ? (View) current.getParent() : null;
         }
-        return view.getContext().getColor(R.color.oui_background_color);
+        return OneUIPalette.color(view.getContext(), R.color.oui_background_color);
     }
 
     public ScrollEdgeFades setHeights(int topPixels, int bottomPixels) {
@@ -148,7 +148,8 @@ public final class ScrollEdgeFades {
     }
 
     private void refresh() {
-        drawable.setBounds(0, 0, scrollable.getWidth(), scrollable.getHeight());
+        int scrollY = scrollable.getScrollY();
+        drawable.setBounds(0, scrollY, scrollable.getWidth(), scrollY + scrollable.getHeight());
         drawable.invalidateSelf();
     }
 
@@ -158,12 +159,13 @@ public final class ScrollEdgeFades {
             if (!BlurSettings.isEnabled(scrollable.getContext())) return;
             int width = getBounds().width();
             int height = getBounds().height();
+            int top = getBounds().top;
             if (width == 0 || height == 0) return;
             if (topAllowed && topHeight > 0 && scrollable.canScrollVertically(-1))
-                drawEdge(canvas, 0, Math.min(topHeight, height), true, width);
+                drawEdge(canvas, top, Math.min(topHeight, height), true, width);
             if (bottomAllowed && bottomHeight > 0 && scrollable.canScrollVertically(1)) {
                 int size = Math.min(bottomHeight, height);
-                drawEdge(canvas, height - size, size, false, width);
+                drawEdge(canvas, top + height - size, size, false, width);
             }
         }
         private void drawEdge(Canvas canvas, int y, int size, boolean top, int width) {

@@ -6,6 +6,12 @@
     android:layout_height="match_parent"
     tools:viewBindingIgnore="true">
 
+    <dev.oneuiproject.oneui.widget.ProgressiveBlurLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:blurTop="false"
+        app:blurBottom="true">
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/widgets_scroll_content"
         android:layout_width="match_parent"
@@ -34,7 +40,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
             android:orientation="vertical"
             android:paddingHorizontal="24dp"
             android:paddingVertical="12dp">
@@ -83,7 +89,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingHorizontal="24dp"
@@ -150,7 +156,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
             android:paddingHorizontal="16dp"
             android:paddingVertical="8dp">
 
@@ -166,15 +172,45 @@
             android:layout_height="wrap_content"
             android:text="Floating search" />
 
+        <dev.oneuiproject.oneui.widget.RoundLinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="12dp">
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/widgets_show_floating_search"
+                style="?attr/buttonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show floating search" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/widgets_persistent_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Persistent search bar" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/widgets_ai_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="AI search bar" />
+        </dev.oneuiproject.oneui.widget.RoundLinearLayout>
+
     </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
+    </dev.oneuiproject.oneui.widget.ProgressiveBlurLayout>
 
     <ScrollView
         android:id="@+id/widgets_search_results"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/oui_background_color"
+        android:background="@color/oui_background_color" android:tag="oneui.palette.background"
         android:visibility="gone"
         android:paddingBottom="88dp">
         <LinearLayout
@@ -192,6 +228,8 @@
         android:layout_height="56dp"
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        app:searchPersistent="false"
+        app:searchAiMode="false" />
 
 </FrameLayout>

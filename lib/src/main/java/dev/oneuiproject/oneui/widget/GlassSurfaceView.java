@@ -23,7 +23,7 @@ import dev.oneuiproject.oneui.design.R;
 
 /** A reusable rounded glass surface that blurs a supplied view behind it on API 23+. */
 public class GlassSurfaceView extends View {
-    private static final int SAMPLE = 6;
+    private int sampleScale = BlurSettings.GLASS_SAMPLE_SCALE;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Path clip = new Path();
     private View source;
@@ -79,6 +79,12 @@ public class GlassSurfaceView extends View {
         invalidate();
     }
     public void setBlurEnabled(boolean enabled) { blurEnabled = enabled; invalidate(); }
+    /** Lower values keep more detail in the frosted background. */
+    public void setBlurSampleScale(int scale) {
+        sampleScale = Math.max(2, scale);
+        if (bitmap != null) { bitmap.recycle(); bitmap = null; }
+        invalidate();
+    }
     public void setTintColor(@Nullable Integer color) { tintColor = color; invalidate(); }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -95,13 +101,15 @@ public class GlassSurfaceView extends View {
             } else if (source != null && source != this) {
                 capture();
             }
-            if (bitmap != null)
+            if (bitmap != null) {
+                paint.setColor(android.graphics.Color.WHITE);
                 canvas.drawBitmap(bitmap, null, new Rect(0, 0, getWidth(), getHeight()), paint);
+            }
         }
-        paint.setColor(tintColor != null ? tintColor : getResources().getColor(
-                effectiveBlur && bitmap != null ? R.color.oui_glass_surface
-                        : R.color.oui_floating_nav_surface,
-                getContext().getTheme()));
+        paint.setColor(effectiveBlur && bitmap != null && tintColor != null
+                ? tintColor : OneUIPalette.color(getContext(),
+                        effectiveBlur && bitmap != null ? R.color.oui_glass_surface
+                                : R.color.oui_floating_nav_surface));
         canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
         canvas.restoreToCount(save);
     }
@@ -119,8 +127,8 @@ public class GlassSurfaceView extends View {
         Rect region = new Rect(here[0] - there[0], here[1] - there[1],
                 here[0] - there[0] + getWidth(), here[1] - there[1] + getHeight());
         if (!region.intersect(0, 0, decor.getWidth(), decor.getHeight())) return;
-        Bitmap sample = Bitmap.createBitmap(Math.max(1, getWidth() / SAMPLE),
-                Math.max(1, getHeight() / SAMPLE), Bitmap.Config.ARGB_8888);
+        Bitmap sample = Bitmap.createBitmap(Math.max(1, getWidth() / sampleScale),
+                Math.max(1, getHeight() / sampleScale), Bitmap.Config.ARGB_8888);
         int generation = captureGeneration;
         capturePending = true;
         try {
@@ -170,8 +178,8 @@ public class GlassSurfaceView extends View {
     }
 
     private void capture() {
-        int width = Math.max(1, (getWidth() + SAMPLE - 1) / SAMPLE);
-        int height = Math.max(1, (getHeight() + SAMPLE - 1) / SAMPLE);
+        int width = Math.max(1, (getWidth() + sampleScale - 1) / sampleScale);
+        int height = Math.max(1, (getHeight() + sampleScale - 1) / sampleScale);
         if (bitmap == null || bitmap.getWidth() != width || bitmap.getHeight() != height) {
             if (bitmap != null) bitmap.recycle();
             bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);

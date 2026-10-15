@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.layout;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -248,7 +250,7 @@ public class AppInfoLayout extends ToolbarLayout {
         TextView optionalText = new TextView(mContext);
         optionalText.setText(text);
         optionalText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        optionalText.setTextColor(mContext.getColor(R.color.oui_appinfolayout_info_text_color));
+        optionalText.setTextColor(OneUIPalette.color(mContext, R.color.oui_appinfolayout_info_text_color));
         optionalText.setTextAlignment(TEXT_ALIGNMENT_CENTER);
         optionalText.setLayoutParams(mVersionTextView.getLayoutParams());
         parent.addView(optionalText, parent.indexOfChild(mProgressBar));

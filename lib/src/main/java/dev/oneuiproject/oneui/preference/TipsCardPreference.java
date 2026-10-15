@@ -40,7 +40,8 @@ public class TipsCardPreference extends Preference {
         mContext = context;
         setSelectable(false);
         setLayoutResource(R.layout.oui_preference_tips_layout);
-        mTextColor = ContextCompat.getColor(mContext, R.color.oui_primary_text_color);
+        mTextColor = dev.oneuiproject.oneui.widget.OneUIPalette.color(mContext,
+                R.color.oui_primary_text_color);
     }
 
     public TipsCardPreference(@NonNull Context context, @Nullable AttributeSet attrs,
@@ -61,7 +62,7 @@ public class TipsCardPreference extends Preference {
         super.onBindViewHolder(preferenceViewHolder);
         mItemView = preferenceViewHolder.itemView;
         float density = mContext.getResources().getDisplayMetrics().density;
-        SurfaceShadow.apply(mItemView, true, 3 * density, 24 * density);
+        SurfaceShadow.apply(mItemView, true, 2 * density, 24 * density);
 
         // workaround since we can't use setSelectable here
         if (getOnPreferenceClickListener() != null) {

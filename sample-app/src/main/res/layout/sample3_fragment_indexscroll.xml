@@ -10,13 +10,35 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scrollbars="none"
-        android:background="@color/oui_background_color" />
+        android:background="@color/oui_background_color" android:tag="oneui.palette.background" />
 
-    <androidx.indexscroll.widget.SeslIndexScrollView
-        android:id="@+id/indexscroll_view"
+    <FrameLayout
+        android:id="@+id/indexscroll_overlay"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:layout_height="match_parent">
+
+        <androidx.indexscroll.widget.SeslIndexScrollView
+            android:id="@+id/indexscroll_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/indexscroll_section_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="12dp"
+            android:background="@color/oui_floating_nav_surface" android:tag="oneui.palette.surface"
+            android:elevation="8dp"
+            android:gravity="center"
+            android:minWidth="56dp"
+            android:minHeight="56dp"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/oui_primary_text_color"
+            android:textSize="24sp"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <dev.oneuiproject.oneui.widget.FloatingScrollToTopButton
         android:id="@+id/indexscroll_scroll_top"

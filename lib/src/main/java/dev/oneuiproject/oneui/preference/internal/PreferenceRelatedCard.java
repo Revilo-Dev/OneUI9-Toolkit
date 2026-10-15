@@ -51,7 +51,7 @@ public class PreferenceRelatedCard extends LinearLayout {
         setClipChildren(false);
         if (getChildCount() > 0) {
             float density = getResources().getDisplayMetrics().density;
-            SurfaceShadow.apply(getChildAt(0), true, 3 * density, 26 * density);
+            SurfaceShadow.apply(getChildAt(0), true, 2 * density, 26 * density);
         }
         mCardTitleText = mParentView.findViewById(R.id.link_title);
         mLinkContainer = mParentView.findViewById(R.id.link_container);

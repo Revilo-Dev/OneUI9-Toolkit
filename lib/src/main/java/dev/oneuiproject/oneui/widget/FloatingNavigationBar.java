@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.oneuiproject.oneui.design.R;
+import dev.oneuiproject.oneui.dialog.GridMenuDialog;
 
 /** A floating, single-selection navigation pill with an optional independent end action. */
 public class FloatingNavigationBar extends LinearLayout {
@@ -43,9 +44,10 @@ public class FloatingNavigationBar extends LinearLayout {
         void onItemSelected(int itemId);
     }
 
-    private static final int MAX_ITEMS = 5;
-    private static final int DOWNSAMPLE = 6;
+    private static final int MAX_ITEMS = 4;
+    private static final int DOWNSAMPLE = BlurSettings.GLASS_SAMPLE_SCALE;
     private final List<NavigationItem> items = new ArrayList<>();
+    private final NavigationItem overflowItem;
     private final SelectionPill pill;
     private final ImageView action;
     private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -62,6 +64,7 @@ public class FloatingNavigationBar extends LinearLayout {
     private boolean capturingBackdrop;
     private OnItemSelectedListener itemListener;
     private NavigationPageContainer pages;
+    private View backdropView;
     private OnClickListener actionListener;
     private Drawable actionIcon;
     private CharSequence actionDescription;
@@ -85,9 +88,9 @@ public class FloatingNavigationBar extends LinearLayout {
         setClipToPadding(false);
         setSaveEnabled(true);
         BlurSettings.observe(this);
-        itemWidth = dp(68);
+        itemWidth = dp(70);
         barHeight = dp(60);
-        selectionInset = dp(1);
+        selectionInset = dp(5);
         lightShadowElevation = dp(5);
         int menuRes = 0;
         if (attrs != null) {
@@ -103,8 +106,11 @@ public class FloatingNavigationBar extends LinearLayout {
         pill = new SelectionPill(context);
         pill.setOrientation(HORIZONTAL);
         pill.setGravity(Gravity.CENTER_VERTICAL);
-        pill.setPadding(dp(4), dp(4), dp(4), dp(4));
+        pill.setPadding(dp(10), dp(4), dp(10), dp(4));
         addView(pill, new LayoutParams(LayoutParams.WRAP_CONTENT, barHeight));
+        overflowItem = new NavigationItem(View.generateViewId(),
+                context.getDrawable(R.drawable.oui_ic_navigation_more), "Menu");
+        overflowItem.view.setOnClickListener(v -> showOverflowMenu());
         action = new ImageView(context);
         action.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         action.setPadding(dp(19), dp(19), dp(19), dp(19));
@@ -120,7 +126,7 @@ public class FloatingNavigationBar extends LinearLayout {
         updateSelection();
     }
 
-    /** Menu items supply stable IDs, icons and titles. Up to five destinations are supported. */
+    /** Menu items supply stable IDs, icons and titles. Extra destinations move into More. */
     public void inflateMenu(@MenuRes int menuRes) {
         PopupMenu menu = new PopupMenu(getContext(), this);
         menu.getMenuInflater().inflate(menuRes, menu.getMenu());
@@ -144,17 +150,14 @@ public class FloatingNavigationBar extends LinearLayout {
     }
 
     public void addItem(int id, @Nullable Drawable icon, @NonNull CharSequence title) {
-        if (items.size() >= MAX_ITEMS)
-            throw new IllegalStateException("Maximum five destinations");
         if (id == View.NO_ID) throw new IllegalArgumentException("Navigation items need a stable ID");
         for (NavigationItem item : items) {
             if (item.id == id) throw new IllegalArgumentException("Duplicate navigation item ID");
         }
         NavigationItem item = new NavigationItem(id, icon, title);
         items.add(item);
-        pill.addView(item.view);
-        updateItemWidths();
         if (selectedId == View.NO_ID) selectedId = id;
+        rebuildVisibleItems();
         updateSelection();
     }
 
@@ -208,6 +211,8 @@ public class FloatingNavigationBar extends LinearLayout {
     }
 
     public boolean isBlurEnabled() { return blurEnabled; }
+    /** The page content visible behind this bar. */
+    public void setBackdropView(@Nullable View view) { backdropView = view; invalidate(); }
 
     public void setItemWidth(int pixels) {
         itemWidth = Math.max(dp(48), pixels);
@@ -292,12 +297,52 @@ public class FloatingNavigationBar extends LinearLayout {
 
     public void clearAction() { setAction((Drawable) null, null, null); }
 
+    private List<NavigationItem> visibleItems() {
+        if (items.size() < MAX_ITEMS) return items;
+        List<NavigationItem> visible = new ArrayList<>(items.subList(0, MAX_ITEMS - 1));
+        visible.add(overflowItem);
+        return visible;
+    }
+
+    private int selectedIndex() {
+        for (int i = 0; i < items.size(); i++)
+            if (items.get(i).id == selectedId) return i;
+        return -1;
+    }
+
+    private void rebuildVisibleItems() {
+        pill.removeAllViews();
+        for (NavigationItem item : visibleItems()) pill.addView(item.view);
+        updateItemWidths();
+    }
+
+    private void showOverflowMenu() {
+        if (items.size() < MAX_ITEMS) return;
+        GridMenuDialog menu = new GridMenuDialog(getContext());
+        int count = items.size() - (MAX_ITEMS - 1);
+        menu.setSpanCount(Math.min(4, count));
+        menu.setMaxVisibleRows(2);
+        for (int i = MAX_ITEMS - 1; i < items.size(); i++) {
+            NavigationItem item = items.get(i);
+            menu.addItem(menu.newItem(item.id, item.defaultIcon, item.label.getText()));
+        }
+        menu.setOnItemClickListener(clicked -> {
+            int id = clicked.getItemId();
+            if (selectedId != id) {
+                setSelectedItemId(id);
+                if (itemListener != null) itemListener.onItemSelected(id);
+            }
+            return true;
+        });
+        menu.show();
+    }
+
     private void updateItemWidths() {
         LayoutParams pillParams = (LayoutParams) pill.getLayoutParams();
         pillParams.width = LayoutParams.WRAP_CONTENT;
         pillParams.weight = 0;
         pill.setLayoutParams(pillParams);
-        for (NavigationItem item : items) {
+        for (NavigationItem item : visibleItems()) {
             LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
                     itemWidth, LayoutParams.MATCH_PARENT);
             item.view.setLayoutParams(itemParams);
@@ -306,7 +351,7 @@ public class FloatingNavigationBar extends LinearLayout {
     }
 
     @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int desired = items.size() * itemWidth + dp(8)
+        int desired = Math.min(items.size(), MAX_ITEMS) * itemWidth + dp(20)
                 + (action.getVisibility() == VISIBLE ? barHeight + dp(8) : 0);
         int available = View.MeasureSpec.getSize(widthMeasureSpec);
         widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(
@@ -334,15 +379,13 @@ public class FloatingNavigationBar extends LinearLayout {
         if (light) {
             GradientDrawable pillBackground = new GradientDrawable();
             pillBackground.setColor(surfaceColorOverride != null ? surfaceColorOverride
-                    : getResources().getColor(R.color.oui_floating_nav_surface,
-                            getContext().getTheme()));
+                    : OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface));
             pillBackground.setCornerRadius(barHeight / 2f);
             pill.setBackground(pillBackground);
             pill.setElevation(lightShadowElevation);
             GradientDrawable actionBackground = new GradientDrawable();
             actionBackground.setColor(surfaceColorOverride != null ? surfaceColorOverride
-                    : getResources().getColor(R.color.oui_floating_nav_surface,
-                            getContext().getTheme()));
+                    : OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface));
             actionBackground.setCornerRadius(barHeight / 2f);
             action.setBackground(actionBackground);
             action.setElevation(lightShadowElevation);
@@ -355,17 +398,13 @@ public class FloatingNavigationBar extends LinearLayout {
     }
 
     private void updateSelection() {
-        int primary = getResources().getColor(R.color.oui_floating_nav_primary, getContext().getTheme());
-        int secondary = getResources().getColor(R.color.oui_floating_nav_secondary, getContext().getTheme());
+        int primary = OneUIPalette.color(getContext(), R.color.oui_floating_nav_primary);
+        int secondary = OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary);
         int selectedColor = selectedColorOverride != null ? selectedColorOverride
-                : getResources().getColor(R.color.oui_floating_nav_selected, getContext().getTheme());
-        if (selectedColorOverride == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && MaterialColorSettings.isEnabled(getContext())) {
-            int accent = MaterialColorSettings.accentColor(getContext(), selectedColor);
-            selectedColor = (accent & 0x00ffffff) | 0x55000000;
-        }
-        for (NavigationItem item : items) {
-            boolean selected = item.id == selectedId;
+                : OneUIPalette.color(getContext(), R.color.oui_floating_nav_selected);
+        for (NavigationItem item : visibleItems()) {
+            boolean selected = item.id == selectedId
+                    || (item == overflowItem && selectedIndex() >= MAX_ITEMS - 1);
             item.view.setSelected(selected);
             Drawable icon = selected && item.selectedIcon != null
                     ? item.selectedIcon : item.defaultIcon;
@@ -384,8 +423,9 @@ public class FloatingNavigationBar extends LinearLayout {
         }
         pill.setHighlightColor(selectedColor);
         pill.post(() -> {
-            for (NavigationItem item : items) {
-                if (item.id == selectedId) {
+            for (NavigationItem item : visibleItems()) {
+                if (item.id == selectedId || (item == overflowItem
+                        && selectedIndex() >= MAX_ITEMS - 1)) {
                     pill.moveHighlight(item.view.getLeft(), item.view.getWidth(), animationsEnabled);
                     break;
                 }
@@ -408,8 +448,8 @@ public class FloatingNavigationBar extends LinearLayout {
         if (width == 0 || height == 0) return;
         boolean hasAction = action.getVisibility() == VISIBLE;
         int surface = surfaceColorOverride != null ? surfaceColorOverride
-                : getResources().getColor(R.color.oui_floating_nav_surface, getContext().getTheme());
-        int overlay = getResources().getColor(R.color.oui_floating_nav_glass, getContext().getTheme());
+                : OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface);
+        int overlay = OneUIPalette.color(getContext(), R.color.oui_floating_nav_glass);
         if (isBlurActive() && getParent() instanceof ViewGroup && !isInEditMode()) captureBackdrop();
         drawShape(canvas, pill.getLeft(), pill.getTop(), pill.getRight(), pill.getBottom(), surface, overlay);
         if (hasAction) drawShape(canvas, action.getLeft(), action.getTop(),
@@ -437,8 +477,9 @@ public class FloatingNavigationBar extends LinearLayout {
     private void captureBackdrop() {
         FloatingBarSwitcher switcher = getParent() instanceof FloatingBarSwitcher
                 ? (FloatingBarSwitcher) getParent() : null;
-        View source = switcher != null && switcher.getBackdropView() != null
-                ? switcher.getBackdropView() : getRootView();
+        View source = backdropView != null ? backdropView
+                : switcher != null && switcher.getBackdropView() != null
+                        ? switcher.getBackdropView() : getRootView();
         int width = Math.max(1, (getWidth() + DOWNSAMPLE - 1) / DOWNSAMPLE);
         int height = Math.max(1, (getHeight() + DOWNSAMPLE - 1) / DOWNSAMPLE);
         if (backdrop == null || backdrop.getWidth() != width || backdrop.getHeight() != height) {
@@ -561,8 +602,7 @@ public class FloatingNavigationBar extends LinearLayout {
                 };
                 if (animationsEnabled) {
                     GradientDrawable pressed = new GradientDrawable();
-                    pressed.setColor(getResources().getColor(R.color.oui_floating_nav_press,
-                            getContext().getTheme()));
+                    pressed.setColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_press));
                     pressed.setCornerRadius(dp(30));
                     pressed.setAlpha(0);
                     v.setBackground(pressed);
@@ -621,8 +661,9 @@ public class FloatingNavigationBar extends LinearLayout {
         @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
             super.onLayout(changed, left, top, right, bottom);
             if (changed) {
-                for (NavigationItem item : items) {
-                    if (item.id == selectedId) {
+                for (NavigationItem item : visibleItems()) {
+                    if (item.id == selectedId || (item == overflowItem
+                            && selectedIndex() >= MAX_ITEMS - 1)) {
                         moveHighlight(item.view.getLeft(), item.view.getWidth(), false);
                         break;
                     }
@@ -658,8 +699,8 @@ public class FloatingNavigationBar extends LinearLayout {
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            if (initialized) canvas.drawRoundRect(highlightLeft - dp(3), selectionInset,
-                    highlightLeft + highlightWidth + dp(3), getHeight() - selectionInset,
+            if (initialized) canvas.drawRoundRect(highlightLeft - dp(8), selectionInset,
+                    highlightLeft + highlightWidth + dp(8), getHeight() - selectionInset,
                     (getHeight() - selectionInset * 2) / 2f,
                     (getHeight() - selectionInset * 2) / 2f, highlightPaint);
         }

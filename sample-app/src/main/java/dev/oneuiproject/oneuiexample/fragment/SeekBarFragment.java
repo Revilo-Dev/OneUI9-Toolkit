@@ -40,9 +40,4 @@ public class SeekBarFragment extends BaseFragment {
         return "SeekBar";
     }
 
-    @Override
-    public boolean isAppBarEnabled() {
-        return false;
-    }
-
 }

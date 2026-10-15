@@ -18,7 +18,7 @@ import dev.oneuiproject.oneui.design.R;
 
 /** Rounded background owned by a toolbar control group, with optional backdrop blur. */
 public final class TopActionSurfaceDrawable extends Drawable {
-    private static final int SAMPLE = 6;
+    private static final int SAMPLE = BlurSettings.GLASS_SAMPLE_SCALE;
     private final View host;
     private final View source;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -64,10 +64,8 @@ public final class TopActionSurfaceDrawable extends Drawable {
                 canvas.drawBitmap(bitmap, null, bounds, paint);
             }
         }
-        int solid = host.getResources().getColor(R.color.oui_floating_nav_surface,
-                host.getContext().getTheme());
-        int glass = host.getResources().getColor(R.color.oui_floating_nav_glass,
-                host.getContext().getTheme());
+        int solid = OneUIPalette.color(host.getContext(), R.color.oui_floating_nav_surface);
+        int glass = OneUIPalette.color(host.getContext(), R.color.oui_floating_nav_glass);
         paint.setColor(tintColor != null ? tintColor : effectiveBlur ? glass : solid);
         canvas.drawRect(bounds, paint);
         canvas.restoreToCount(save);

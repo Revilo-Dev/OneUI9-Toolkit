@@ -6,15 +6,10 @@
     android:layout_height="match_parent"
     tools:viewBindingIgnore="true">
 
-    <androidx.core.widget.NestedScrollView
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
         tools:viewBindingIgnore="true">
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/swiperefresh_button"
@@ -28,8 +23,6 @@
                 android:textSize="18sp"
                 android:textColor="#fffafafa" />
 
-        </FrameLayout>
-
-    </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

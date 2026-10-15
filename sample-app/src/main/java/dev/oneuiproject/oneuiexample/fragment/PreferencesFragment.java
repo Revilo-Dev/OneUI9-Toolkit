@@ -15,6 +15,7 @@ import androidx.preference.EditTextPreference;
 import androidx.preference.EditTextPreferenceDialogFragmentCompat;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SeslSwitchPreferenceScreen;
 import androidx.preference.SwitchPreferenceCompat;
@@ -22,11 +23,13 @@ import androidx.preference.SwitchPreferenceCompat;
 import com.sec.sesl.tester.R;
 
 import dev.oneuiproject.oneui.preference.HorizontalRadioPreference;
+import dev.oneuiproject.oneui.preference.ColorPickerPreference;
 import dev.oneuiproject.oneui.preference.TipsCardPreference;
 import dev.oneuiproject.oneui.preference.internal.PreferenceRelatedCard;
 import dev.oneuiproject.oneui.utils.PreferenceUtils;
 import dev.oneuiproject.oneui.widget.Toast;
 import dev.oneuiproject.oneui.widget.MaterialColorSettings;
+import dev.oneuiproject.oneui.widget.OneUIPalette;
 import dev.oneuiproject.oneui.widget.DialogBlur;
 import dev.oneuiproject.oneuiexample.base.FragmentInfo;
 import dev.oneuiproject.oneuiexample.utils.DarkModeUtils;
@@ -91,7 +94,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        getView().setBackgroundColor(mContext.getColor(R.color.oui_background_color));
+        getView().setBackgroundColor(OneUIPalette.color(mContext, R.color.oui_background_color));
         getListView().seslSetLastRoundedCorner(false);
     }
 
@@ -141,6 +144,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat
         SwitchPreferenceCompat materialColors = findPreference(MaterialColorSettings.KEY);
         materialColors.setOnPreferenceChangeListener(this);
         materialColors.setEnabled(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S);
+        createPalettePreferences(materialColors.isChecked());
 
         SeslSwitchPreferenceScreen key2 = findPreference("key2");
         boolean enabled = key2.isChecked();
@@ -205,7 +209,41 @@ public class PreferencesFragment extends PreferenceFragmentCompat
                 return true;
         }
 
+        if (preference.getKey() != null && preference.getKey().startsWith("oneui_palette_")) {
+            requireActivity().getWindow().getDecorView().post(() -> requireActivity().recreate());
+            return true;
+        }
+
         return false;
+    }
+
+    private void createPalettePreferences(boolean materialEnabled) {
+        PreferenceCategory category = findPreference("oneui_palette_category");
+        boolean dark = OneUIPalette.isDark(mContext);
+        category.setTitle(dark ? "Default OneUI palette · Dark" : "Default OneUI palette · Light");
+        category.setEnabled(!materialEnabled);
+        String[] labels = {"Primary", "Secondary", "Background", "Foreground",
+                "Surface", "Surface variant", "Outline", "Error"};
+        for (int i = 0; i < OneUIPalette.ROLES.length; i++) {
+            String role = OneUIPalette.ROLES[i];
+            ColorPickerPreference picker = new ColorPickerPreference(mContext);
+            picker.setKey(OneUIPalette.key(role, dark));
+            picker.setTitle(labels[i]);
+            picker.setSummary("Default: #" + String.format(java.util.Locale.US, "%08X",
+                    OneUIPalette.defaultColor(mContext, role)));
+            picker.setDefaultValue(OneUIPalette.defaultColor(mContext, role));
+            category.addPreference(picker);
+            picker.setOnPreferenceChangeListener(this);
+        }
+        Preference reset = new Preference(mContext);
+        reset.setTitle("Reset this mode to Default OneUI");
+        reset.setSummary("Restore the original colors for " + (dark ? "dark" : "light") + " mode");
+        reset.setOnPreferenceClickListener(item -> {
+            OneUIPalette.reset(mContext, dark);
+            requireActivity().recreate();
+            return true;
+        });
+        category.addPreference(reset);
     }
 
     private ColorStateList getColoredSummaryColor(boolean enabled) {

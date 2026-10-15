@@ -2,20 +2,18 @@ package dev.oneuiproject.oneuiexample.fragment;
 
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.RadioButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.view.menu.SeslMenuItem;
-import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.appcompat.widget.SeslProgressBar;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.apppickerview.widget.AppPickerView;
@@ -24,15 +22,16 @@ import com.sec.sesl.tester.R;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import dev.oneuiproject.oneui.widget.Toast;
 import dev.oneuiproject.oneuiexample.base.BaseFragment;
 
 public class AppPickerFragment extends BaseFragment
-        implements AppPickerView.OnBindListener, AdapterView.OnItemSelectedListener {
+        implements AppPickerView.OnBindListener {
+    private static final String[] CATEGORIES = {"List", "List, Action Button",
+            "List, CheckBox", "List, CheckBox, All apps", "List, RadioButton",
+            "List, Switch", "List, Switch, All apps", "Grid", "Grid, CheckBox"};
     private boolean mListInitialized = false;
     private int mListType = AppPickerView.TYPE_LIST;
     private boolean mShowSystemApps = false;
@@ -43,6 +42,9 @@ public class AppPickerFragment extends BaseFragment
 
     private AppPickerView mAppPickerView;
     private SeslProgressBar mProgress;
+    private final ArrayList<String> mVisiblePackages = new ArrayList<>();
+    private ArrayList<String> mCachedPackages;
+    private int mLoadGeneration;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -57,7 +59,6 @@ public class AppPickerFragment extends BaseFragment
         mAppPickerView = view.findViewById(R.id.apppicker_list);
         mAppPickerView.setItemAnimator(null);
         mAppPickerView.seslSetSmoothScrollEnabled(true);
-        initSpinner(view);
     }
 
     @Override
@@ -67,6 +68,13 @@ public class AppPickerFragment extends BaseFragment
             fillListView();
             mListInitialized = true;
         }
+    }
+
+    @Override public void onDestroyView() {
+        ++mLoadGeneration;
+        mAppPickerView = null;
+        mProgress = null;
+        super.onDestroyView();
     }
 
     @Override
@@ -82,15 +90,27 @@ public class AppPickerFragment extends BaseFragment
         }
         ((SeslMenuItem) systemAppsItem)
                 .setBadgeText(getString(R.string.oui_new_badge_text));
+        MenuItem modeItem = menu.findItem(R.id.menu_apppicker_mode);
+        modeItem.setVisible(true);
+        if (modeItem.getSubMenu().size() == 0) {
+            for (int i = 0; i < CATEGORIES.length; i++)
+                modeItem.getSubMenu().add(R.id.menu_apppicker_mode, i, i, CATEGORIES[i]);
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getGroupId() == R.id.menu_apppicker_mode) {
+            mListType = item.getItemId();
+            fillListView();
+            return true;
+        }
         if (item.getItemId() == R.id.menu_apppicker_system) {
             ((SeslMenuItem) item)
                     .setBadgeText(null);
 
             mShowSystemApps = !mShowSystemApps;
+            mCachedPackages = null;
             if (mShowSystemApps) {
                 item.setTitle("Hide system apps");
             } else {
@@ -119,100 +139,74 @@ public class AppPickerFragment extends BaseFragment
         return "AppPickerView";
     }
 
-    private void initSpinner(@NonNull View view) {
-        AppCompatSpinner spinner = view.findViewById(R.id.apppicker_spinner);
-
-        List<String> categories = new ArrayList<>();
-        categories.add("List");
-        categories.add("List, Action Button");
-        categories.add("List, CheckBox");
-        categories.add("List, CheckBox, All apps");
-        categories.add("List, RadioButton");
-        categories.add("List, Switch");
-        categories.add("List, Switch, All apps");
-        categories.add("Grid");
-        categories.add("Grid, CheckBox");
-
-        ArrayAdapter<String> adapter
-                = new ArrayAdapter<>(mContext, android.R.layout.simple_spinner_item, categories);
-        adapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
-
-        spinner.setAdapter(adapter);
-        spinner.setOnItemSelectedListener(this);
-    }
-
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        mListType = position;
-        fillListView();
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) { }
-
     private void fillListView() {
-        mIsAllAppsSelected = false;
-        showProgressCircle(true);
-        new Thread() {
-            @Override
-            public void run() {
-                if (!mListInitialized) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ignored) { }
-                }
-                requireActivity().runOnUiThread(() -> {
-                    ArrayList<String> installedAppSet
-                            = new ArrayList<>(getInstalledPackageNameUnmodifiableSet());
-
-                    if (mAppPickerView.getItemDecorationCount() > 0) {
-                        for (int i = 0; i < mAppPickerView.getItemDecorationCount(); i++) {
-                            mAppPickerView.removeItemDecorationAt(i);
-                        }
-                    }
-
-                    mAppPickerView.setAppPickerView(mListType,
-                            installedAppSet, AppPickerView.ORDER_ASCENDING_IGNORE_CASE);
-                    mAppPickerView.setOnBindListener(AppPickerFragment.this);
-
-                    mItems.clear();
-                    if (mListType == AppPickerView.TYPE_LIST_CHECKBOX_WITH_ALL_APPS
-                            || mListType == AppPickerView.TYPE_LIST_SWITCH_WITH_ALL_APPS) {
-                        mItems.add(Boolean.FALSE);
-                    }
-                    for (String app : installedAppSet) {
-                        mItems.add(Boolean.FALSE);
-                    }
-
-                    showProgressCircle(false);
-                });
-            }
-        }.start();
+        loadPackages();
     }
 
     private void refreshListView() {
+        loadPackages();
+    }
+
+    private void loadPackages() {
+        int generation = ++mLoadGeneration;
+        int type = mListType;
+        boolean includeSystem = mShowSystemApps;
+        Context context = requireContext().getApplicationContext();
+        SeslProgressBar progress = mProgress;
         showProgressCircle(true);
-        new Thread() {
-            @Override
-            public void run() {
-                requireActivity().runOnUiThread(() -> {
-                    ArrayList<String> installedAppSet
-                            = new ArrayList<>(getInstalledPackageNameUnmodifiableSet());
-                    mAppPickerView.resetPackages(installedAppSet);
-
-                    mItems.clear();
-                    if (mListType == AppPickerView.TYPE_LIST_CHECKBOX_WITH_ALL_APPS
-                            || mListType == AppPickerView.TYPE_LIST_SWITCH_WITH_ALL_APPS) {
-                        mItems.add(Boolean.FALSE);
-                    }
-                    for (String app : installedAppSet) {
-                        mItems.add(Boolean.FALSE);
-                    }
-
-                    showProgressCircle(false);
-                });
+        if (mCachedPackages != null) {
+            startBatches(new ArrayList<>(mCachedPackages), generation, type);
+            return;
+        }
+        new Thread(() -> {
+            ArrayList<String> packages = new ArrayList<>();
+            for (ApplicationInfo app : context.getPackageManager()
+                    .getInstalledApplications(PackageManager.GET_META_DATA)) {
+                if (!includeSystem && (app.flags & (ApplicationInfo.FLAG_UPDATED_SYSTEM_APP
+                        | ApplicationInfo.FLAG_SYSTEM)) != 0) continue;
+                packages.add(app.packageName);
             }
-        }.start();
+            Collections.sort(packages);
+            progress.post(() -> {
+                if (generation != mLoadGeneration || mAppPickerView == null) return;
+                mCachedPackages = packages;
+                startBatches(packages, generation, type);
+            });
+        }, "app-picker-packages").start();
+    }
+
+    private void startBatches(ArrayList<String> packages, int generation, int type) {
+        mVisiblePackages.clear();
+        mItems.clear();
+        mIsAllAppsSelected = false;
+        mCheckedPosition = 0;
+        if (type == AppPickerView.TYPE_LIST_CHECKBOX_WITH_ALL_APPS
+                || type == AppPickerView.TYPE_LIST_SWITCH_WITH_ALL_APPS)
+            mItems.add(Boolean.FALSE);
+        appendBatch(packages, generation, type, 0);
+    }
+
+    private void appendBatch(ArrayList<String> packages, int generation, int type, int start) {
+        if (generation != mLoadGeneration || mAppPickerView == null) return;
+        int end = Math.min(start + 40, packages.size());
+        for (int i = start; i < end; i++) {
+            mVisiblePackages.add(packages.get(i));
+            mItems.add(Boolean.FALSE);
+        }
+        if (start == 0) {
+            while (mAppPickerView.getItemDecorationCount() > 0)
+                mAppPickerView.removeItemDecorationAt(0);
+            mAppPickerView.setOnBindListener(this);
+            mAppPickerView.setAppPickerView(type, new ArrayList<>(mVisiblePackages),
+                    AppPickerView.ORDER_ASCENDING_IGNORE_CASE);
+        } else {
+            mAppPickerView.resetPackages(new ArrayList<>(mVisiblePackages));
+        }
+        if (end < packages.size()) {
+            mAppPickerView.postDelayed(() -> appendBatch(packages, generation, type, end), 16);
+        } else {
+            showProgressCircle(false);
+        }
     }
 
     @Override
@@ -331,28 +325,6 @@ public class AppPickerFragment extends BaseFragment
 
     private void showProgressCircle(boolean show) {
         mProgress.setVisibility(show ? View.VISIBLE : View.GONE);
-        mAppPickerView.setVisibility(show ? View.GONE : View.VISIBLE);
-    }
-
-    private Set<String> getInstalledPackageNameUnmodifiableSet() {
-        HashSet<String> set = new HashSet<>();
-        for (ApplicationInfo appInfo : getInstalledAppList()) {
-            set.add(appInfo.packageName);
-        }
-        return Collections.unmodifiableSet(set);
-    }
-
-    private List<ApplicationInfo> getInstalledAppList() {
-        ArrayList<ApplicationInfo> list = new ArrayList<>();
-        List<ApplicationInfo> apps = mContext.getPackageManager()
-                .getInstalledApplications(PackageManager.GET_META_DATA);
-        for (ApplicationInfo appInfo : apps) {
-            if ((appInfo.flags & (ApplicationInfo.FLAG_UPDATED_SYSTEM_APP
-                    | ApplicationInfo.FLAG_SYSTEM)) > 0 && !mShowSystemApps) {
-                continue;
-            }
-            list.add(appInfo);
-        }
-        return list;
+        mAppPickerView.setVisibility(View.VISIBLE);
     }
 }

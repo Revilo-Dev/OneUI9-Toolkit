@@ -39,6 +39,11 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        android:key="oneui_palette_category"
+        android:title="Default OneUI palette"
+        android:summary="Customize colors for the current light or dark mode" />
+
     <PreferenceCategory>
 
         <SwitchPreferenceCompat

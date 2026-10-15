@@ -33,12 +33,12 @@ public class FloatingScrollToTopButton extends FrameLayout {
         setContentDescription("Scroll to top");
         GradientDrawable background = new GradientDrawable();
         background.setShape(GradientDrawable.OVAL);
-        background.setColor(context.getColor(R.color.oui_floating_nav_surface));
+        background.setColor(OneUIPalette.color(context, R.color.oui_floating_nav_surface));
         setBackground(background);
         ImageView icon = new ImageView(context);
         icon.setImageResource(R.drawable.oui_ic_scroll_top);
         icon.setImageTintList(ColorStateList.valueOf(
-                context.getColor(R.color.oui_primary_text_color)));
+                OneUIPalette.color(context, R.color.oui_primary_text_color)));
         addView(icon, new LayoutParams(dp(24), dp(24), Gravity.CENTER));
         setOnClickListener(v -> {
             if (list != null) list.smoothScrollToPosition(0);

@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.dialog;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -50,6 +52,7 @@ public class GridMenuDialog extends AlertDialog {
     private Context mContext;
     private CharSequence mMessage;
     private int mSpanCount = DEFAULT_SPAN_COUNT;
+    private int mMaxVisibleRows;
     private ArrayList<GridMenuItem> mMenuList = new ArrayList<>();
     private OnItemClickListener mOnItemClickListener;
 
@@ -226,8 +229,14 @@ public class GridMenuDialog extends AlertDialog {
         resetContentPadding();
 
         mGridListView = mContentView.findViewById(R.id.grid_menu_view);
+        if (mMaxVisibleRows > 0 && mMenuList.size() > mSpanCount * mMaxVisibleRows) {
+            ViewGroup.LayoutParams params = mGridListView.getLayoutParams();
+            // Each tile is 94dp tall; the 8dp gap begins with the second row.
+            params.height = dp(94 * mMaxVisibleRows + (mMaxVisibleRows - 1) * 8);
+            mGridListView.setLayoutParams(params);
+        }
         ScrollEdgeFades.attach(mGridListView)
-                .setColor(mContext.getColor(R.color.oui_floating_nav_surface));
+                .setColor(OneUIPalette.color(mContext, R.color.oui_floating_nav_surface));
         mAdapter = new GridListAdapter();
         mGridListView.setLayoutManager(new GridLayoutManager(mContext, mSpanCount));
         mGridListView.setAdapter(mAdapter);
@@ -323,7 +332,7 @@ public class GridMenuDialog extends AlertDialog {
     }
 
     public void setSpanCount(int spanCount) {
-        mSpanCount = spanCount;
+        mSpanCount = Math.max(1, spanCount);
 
         if (mGridListView != null) {
             GridLayoutManager layoutManager
@@ -333,6 +342,11 @@ public class GridMenuDialog extends AlertDialog {
             }
             updateAllItems();
         }
+    }
+
+    /** Limits the popup height while allowing additional destinations to scroll. */
+    public void setMaxVisibleRows(int rows) {
+        mMaxVisibleRows = Math.max(0, rows);
     }
 
     public void addItem(@NonNull GridMenuItem gridItem) {

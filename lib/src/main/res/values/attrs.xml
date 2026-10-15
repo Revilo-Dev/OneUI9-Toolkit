@@ -20,6 +20,10 @@
     <declare-styleable name="DrawerLayout">
         <attr name="pushContentOnOpen" format="boolean" />
     </declare-styleable>
+    <declare-styleable name="FloatingSearchBar">
+        <attr name="searchPersistent" format="boolean" />
+        <attr name="searchAiMode" format="boolean" />
+    </declare-styleable>
     <declare-styleable name="FloatingNavigationBar">
         <attr name="navigationMenu" format="reference" />
         <attr name="showLabels" format="boolean" />

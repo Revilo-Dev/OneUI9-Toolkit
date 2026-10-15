@@ -22,7 +22,7 @@
                 <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_marginHorizontal="16dp"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:background="@color/oui_background_color" android:orientation="vertical"
+                    android:background="@color/oui_background_color" android:tag="oneui.palette.background" android:orientation="vertical"
                     android:paddingHorizontal="24dp" android:paddingVertical="12dp">
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/nav_toggle_blur" android:layout_width="match_parent"
@@ -47,14 +47,24 @@
                     android:text="How navigation works" />
                 <dev.oneuiproject.oneui.widget.RoundLinearLayout
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="16dp" android:background="@color/oui_background_color"
+                    android:layout_marginHorizontal="16dp" android:background="@color/oui_background_color" android:tag="oneui.palette.background"
                     android:orientation="vertical" android:padding="20dp">
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:text="Each destination is linked to a page with the same ID. Tap the sticky bar or swipe horizontally to change pages. Grid shows album tiles, List shows icon rows, and Cards shows expandable cards. Menu opens the actions popup, while the optional search button sits outside the destination pill."
+                        android:text="Each destination is linked to a page with the same ID. Tap the sticky bar or swipe horizontally to change pages. When there are more than five destinations, More opens the remaining pages in a grid. The optional search button sits outside the destination pill."
                         android:textSize="14sp" />
                 </dev.oneuiproject.oneui.widget.RoundLinearLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+        <TextView android:id="@id/nav_music" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:visibility="gone"
+            android:gravity="center" android:text="Music page" android:textSize="24sp" />
+        <TextView android:id="@id/nav_calendar" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:visibility="gone"
+            android:gravity="center" android:text="Calendar page" android:textSize="24sp" />
+        <FrameLayout android:id="@id/nav_action_cards" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:visibility="gone" />
+        <FrameLayout android:id="@id/nav_shortcuts_carousel" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:visibility="gone" />
     </dev.oneuiproject.oneui.widget.NavigationPageContainer>
     <dev.oneuiproject.oneui.widget.FloatingNavigationBar
         android:id="@+id/tabs_floating_nav" android:layout_width="wrap_content"

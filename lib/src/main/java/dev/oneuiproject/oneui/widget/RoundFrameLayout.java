@@ -53,7 +53,7 @@ public class RoundFrameLayout extends FrameLayout {
         surfaceShadowEnabled = a.getBoolean(R.styleable.RoundFrameLayout_surfaceShadowEnabled,
                 getBackground() != null);
         surfaceShadowElevation = a.getDimension(R.styleable.RoundFrameLayout_surfaceShadowElevation,
-                3 * getResources().getDisplayMetrics().density);
+                2 * getResources().getDisplayMetrics().density);
         a.recycle();
 
         mRoundedCorner = new SeslRoundedCorner(mContext);

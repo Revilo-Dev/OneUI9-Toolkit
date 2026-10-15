@@ -3,20 +3,25 @@
   <br><br>
   <a href="https://t.me/oneuiproject"><img src="https://img.shields.io/badge/Telegram-OneUI_Project-blue.svg?style=for-the-badge&logo=Telegram"/></a>
   <a href="https://mvnrepository.com/artifact/io.github.oneuiproject/design"><img src="https://img.shields.io/maven-central/v/io.github.oneuiproject/design?color=%23C71A36&label=Maven&logo=Apache%20Maven&logoColor=%23C11920&style=for-the-badge"/></a>
-  <h3 align="center"><a href="https://github.com/OneUIProject/oneui-design/raw/main/sample-app/release/sample-app-release.apk">Download Sample APK</a></h3>
+  <h3 align="center"><a href="sample-app/release/sample-app-release.apk">Bundled sample APK</a></h3>
 </p>
 
-<h1></h1>
+<h1 align="center">OneUI Design · revilodev fork</h1>
+
+This fork is developed by **revilodev** and builds on the original [OneUIProject/oneui-design](https://github.com/OneUIProject/oneui-design) by **Yanndroid** and **BlackMesa123**. Their work and copyright remain credited in [LICENSE](LICENSE).
+
+**Full guide:** [Components and settings](docs/components-and-settings.md) lists the public components, appearance preferences, blur, palette roles, component styles, and integration examples.
 
 In this repository you'll find:
 - Source code of the [oneui-design library](#oneui-design-module)
-- Source code of our [One UI Sample app](#oneui-sample-app) (see [Kotlin version](https://github.com/Lemkinator/OneUI-Sample-App)
+- Source code of the [One UI Sample app](#oneui-sample-app)
+- The [complete component and settings guide](docs/components-and-settings.md)
 
 Any form of contribution, suggestions, bug report or feature request will be welcome.
 
 # OneUI Design Module
 
-The "oneui-design" library (not to be confused with the old [OneUI Design Library](https://github.com/OneUIProject/OneUI-Design-Library)) consists of custom components made to help you implement One UI in your apps with ease, if you're actually interested on the base libraries please take a look at [oneui-core](https://github.com/OneUIProject/oneui-core). Check our [documentation page](https://oneuiproject.github.io/design/) to learn more about this module.
+The `oneui-design` library (distinct from the older [OneUI Design Library](https://github.com/OneUIProject/OneUI-Design-Library)) contains custom One UI views, layouts, dialogs, and preferences. It builds on [oneui-core](https://github.com/OneUIProject/oneui-core). This fork's current API and settings are documented in [components-and-settings.md](docs/components-and-settings.md); the [original documentation](https://oneuiproject.github.io/design/) covers the upstream project.
 
 ## Usage
 
@@ -39,11 +44,23 @@ dependencies {
 </application>
 ```
 
+If you use the sample's app-wide palette behavior, apply it before inflating each activity:
+
+```java
+@Override protected void onCreate(Bundle state) {
+    super.onCreate(state);
+    MaterialColorSettings.applyTheme(this);
+    setContentView(R.layout.activity_main);
+}
+```
+
+Recreate the activity after changing Material mode or a saved palette color. The sample app already wires this into its Preferences page.
+
 # OneUI Sample App
 
 <p align="center"><img loading="lazy" src="readme-res/sample-ss1.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss2.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss3.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss4.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss5.jpg" height="280"/></p>
 
-The One UI Sample app has been made to showcase the components from both our [oneui-core](https://github.com/OneUIProject/oneui-core) libraries and [oneui-design](#oneui-design-module) module. You can download the latest apk [here](https://github.com/OneUIProject/oneui-design/raw/main/sample-app/release/sample-app-release.apk), for the older versions of the app please check the deprecated [OneUI Design Library](https://github.com/OneUIProject/OneUI-Design-Library) repository.
+The One UI Sample app showcases components from [oneui-core](https://github.com/OneUIProject/oneui-core) and this [oneui-design](#oneui-design-module) module. Its drawer pages include Widgets, Progress bars, Now Bar, Seek bars, Swipe refresh, Preferences, Tabs, Toolbar, App picker, Index scroll, Pickers, QR code, and Icons. Build the app from source for the latest changes; the [bundled APK](sample-app/release/sample-app-release.apk) is a release snapshot.
 
 ## Features
 - Supports Android 6.0 (api 23) and above;
@@ -51,7 +68,10 @@ The One UI Sample app has been made to showcase the components from both our [on
 - Includes `ProgressiveBlurLayout` for fading blur at the top and bottom of scrollable content (API 23+);
 - Includes `FloatingNavigationBar` for a floating navigation pill with optional labels, backdrop blur, and a separate end action;
 - Includes `OneUISlider` and `FloatingToolbar` for the thicker slider treatment and compact contextual actions;
-- One UI 4 Color Theme support;
+- Includes a component-wide **Default OneUI** palette with editable light and dark Primary, Secondary, Background, Foreground, Surface, Surface variant, Outline, and Error roles;
+- Can switch between saved OneUI colors and Android 12+ wallpaper colors in Preferences;
+- Includes an app-wide blur switch and local blur, tint, shadow, shape, and motion controls;
+- Includes Now Bar, shortcut, carousel, and action card demonstrations in the sample app;
 - Example UI for the following components:
   - AppCompat (Base widgets/theme);
   - Material Components ([Tabs](https://material.io/components/tabs), [Bottom navigation](https://material.io/components/bottom-navigation));
@@ -59,6 +79,23 @@ The One UI Sample app has been made to showcase the components from both our [on
   - ListViews (AppPicker, Contacts, Icons);
   - Preferences;
   - Swipe to Refresh;
+
+## Appearance and component settings
+
+Open **Preferences** in the sample app to change light/dark mode, turn blur on or off, select Android wallpaper colors, and edit the **Default OneUI palette**. With Material theming disabled, participating library components use the app's Default OneUI palette throughout the app. Its starting colors are the existing light and dark resources; editing a role saves a separate color for each mode. Use **Reset this mode to Default OneUI** to restore those defaults. Android 12+ wallpaper colors take priority while Material theming is enabled.
+
+Use `OneUIPalette.get(context, OneUIPalette.PRIMARY)` to read a semantic color, `OneUIPalette.set(context, role, dark, color)` to change one, and `OneUIPalette.reset(context, dark)` to reset a mode. `OneUIPalette.color(context, R.color.oui_...)` maps existing component resources to the active palette. For XML views, the sample calls `OneUIPalette.applyToViewTree(root)` after inflation and tags palette backgrounds with `oneui.palette.background` or `oneui.palette.surface`. Direct per-view setters still let you style an individual control. The [full guide](docs/components-and-settings.md#appearance-preferences) explains all eight roles and integration steps.
+
+`BlurSettings.setEnabled(context, false)` turns off participating backdrop blur and scroll fades app-wide. Use `setBlurEnabled` on an individual floating control, `setStickyActionBlurEnabled` on `ToolbarLayout`, `setCardBlurEnabled` on `GridMenuDialog`, or `setBlurSampleScale` on `GlassSurfaceView` for local styling. The [component table](docs/components-and-settings.md#component-catalog) lists the rest of the public views and their settings.
+
+The sample also includes these newer demonstrations:
+
+| Demo | What it shows |
+| --- | --- |
+| Now Bar | Normal and timer notifications with a live status display |
+| Navigation | A floating bar with a More grid for extra destinations and page swipes |
+| Widgets | Horizontal carousel, action cards, and a six-shortcut grid |
+| Search | A floating search pill with voice input and filtered results |
 
 # Scroll edge fades
 
@@ -100,7 +137,7 @@ The sample's search action filters its page list as text changes. For applicatio
 
 ## Floating navigation
 
-`FloatingNavigationBar` is a reusable view for compact navigation. Add it over content in a `FrameLayout`, leaving a bottom content inset so the last row stays reachable. Its menu items provide stable IDs, icons, and accessible titles. Use up to five destinations, with an optional circular end action independent of navigation selection. For outlined icons that fill when selected, call `setSelectedIcon(itemId, filledDrawable)` after inflating the menu. The sample Navigation page demonstrates this for Grid, List, Cards, and Settings.
+`FloatingNavigationBar` is a reusable view for compact navigation. Add it over content in a `FrameLayout`, leaving a bottom content inset so the last row stays reachable. Its menu items provide stable IDs, icons, and accessible titles. Up to three destinations appear directly; a fourth slot opens a More grid for additional destinations. An optional circular end action remains independent of navigation selection. For outlined icons that fill when selected, call `setSelectedIcon(itemId, filledDrawable)` after inflating the menu. The sample Navigation page demonstrates this for Grid, List, Cards, and Settings.
 
 ```xml
 <dev.oneuiproject.oneui.widget.FloatingNavigationBar
@@ -135,7 +172,7 @@ nav.bindPages(pages);
 nav.setPageSwipingEnabled(true); // Optional; false disables horizontal page swipes.
 ```
 
-Place the page container and bar as siblings in a full-height `FrameLayout`, with the bar aligned to the bottom. Leave 88dp of bottom space in the page container so content stays reachable. A menu item without a matching page can be handled by `setOnItemSelectedListener`, as the sample does for its popup. The sample has gradient album tiles on Grid, icon rows on List, expandable cards on Cards, and controls on Settings. Press and page transitions follow `setAnimationsEnabled`. With blur enabled, the view samples content behind it; solid mode skips this work. Surfaces use `#E3E3E3` in light mode and `#2E2E30` in dark mode, with `#FFFFFF` and `#3D3D3D` selected pills. Samsung's [bottom navigation guidance](https://developer.samsung.com/one-ui/comp/bottom-navigation.html) describes the tab behavior and [bottom bar guidance](https://developer.samsung.com/one-ui/comp/bottom-bar.html) describes bottom actions.
+Place the page container and bar as siblings in a full-height `FrameLayout`, with the bar aligned to the bottom. Leave 88dp of bottom space in the page container so content stays reachable. A menu item without a matching page can be handled by `setOnItemSelectedListener`, as the sample does for its popup. The sample has gradient album tiles on Grid, icon rows on List, expandable cards on Cards, and controls on Settings. Press and page transitions follow `setAnimationsEnabled`. With blur enabled, the view samples content behind it; solid mode skips this work. Surfaces and selection colors come from the active palette, with the original light and dark resources as defaults. Samsung's [bottom navigation guidance](https://developer.samsung.com/one-ui/comp/bottom-navigation.html) describes the tab behavior and [bottom bar guidance](https://developer.samsung.com/one-ui/comp/bottom-bar.html) describes bottom actions.
 
 `IconRowView` powers both the plain List rows and expandable Cards rows. Set `setIconResource`, `setIconBackgroundColor`, `setIconTintColor`, `setTitle`, and `setSubtitle` for either style. Call `setExpandedText("Example text")` to add a chevron and expandable detail; omit it for a plain row. Cards disable automatic scroll edge fades with `ScrollEdgeFades.setAutoAttachEnabled(scrollView, false)`.
 
@@ -155,7 +192,7 @@ tile.setImageUri(latestPhotoUri);                 // URI your app retrieved from
 
 Pass a readable URI for the latest or picked photo; the app that chooses the photo also handles the required media access. The tile displays it with center cropping and keeps the gradient underneath as a fallback.
 
-For one to three destinations without an end action, the bar sizes itself to its items. Use `android:layout_gravity="bottom|center_horizontal"` inside a `FrameLayout` to center a compact bar. Four or five destinations fill the available width.
+For one to three destinations without an end action, the bar sizes itself to its items. Use `android:layout_gravity="bottom|center_horizontal"` inside a `FrameLayout` to center a compact bar. Four or more destinations use the fourth slot for More.
 
 ## Sliders
 
@@ -218,7 +255,7 @@ For a commented settings page built from the existing preference components, see
 
 ## Android 17 / One UI modernization plan
 
-The build now uses Gradle 9.5.1, Android Gradle Plugin 9.3, and `compileSdk` 36. The installed SDK on the development machine stops at API 36.1, so API 37 compilation still requires installing the Android 17 SDK. The sample still targets API 31 and the project still uses older SESL dependencies. `ui9-v1.0` identifies the first migration release and does **not** claim that the whole library has been migrated yet.
+The build uses Gradle 9.5.1, Android Gradle Plugin 9.3, and `compileSdk` 36. The sample targets API 33 and the project still uses older SESL dependencies. `ui9-v1.0` identifies the first migration release and does **not** claim that the whole library has been migrated yet.
 
 1. Review available SESL releases and upgrade dependencies together, checking API compatibility. Keep `minSdk 23` until a dependency or feature forces a change; gate new platform APIs by SDK level. The legacy picker artifacts share a namespace and currently require the `android.uniquePackageNames=false` migration setting.
 2. Install the Android 17 SDK and raise `compileSdk` to 37. Update the sample's `targetSdk` separately after testing Android 15+ edge-to-edge, window insets, predictive back, permissions, and Android 17 behavior changes.

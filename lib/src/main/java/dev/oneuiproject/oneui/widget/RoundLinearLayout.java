@@ -52,7 +52,7 @@ public class RoundLinearLayout extends LinearLayout {
         surfaceShadowEnabled = a.getBoolean(R.styleable.RoundLinearLayout_surfaceShadowEnabled,
                 getBackground() != null);
         surfaceShadowElevation = a.getDimension(R.styleable.RoundLinearLayout_surfaceShadowElevation,
-                3 * getResources().getDisplayMetrics().density);
+                2 * getResources().getDisplayMetrics().density);
         a.recycle();
 
         mRoundedCorner = new SeslRoundedCorner(mContext);

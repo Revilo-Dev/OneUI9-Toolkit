@@ -5,13 +5,19 @@ import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
+import android.graphics.drawable.GradientDrawable;
 import android.content.res.ColorStateList;
+import android.content.res.TypedArray;
+import android.content.Intent;
+import android.speech.RecognizerIntent;
+import android.content.ActivityNotFoundException;
 import android.graphics.drawable.Drawable;
 import android.graphics.Outline;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewOutlineProvider;
@@ -36,6 +42,7 @@ public class FloatingSearchBar extends FrameLayout {
     }
 
     private final GlassSurfaceView surface;
+    private final View aiSurface;
     private final ImageView searchIcon;
     private final EditText input;
     private final ImageButton close;
@@ -50,9 +57,17 @@ public class FloatingSearchBar extends FrameLayout {
     };
     private Listener listener;
     private Runnable closeRequested;
+    private Runnable voiceRequested;
     private boolean open;
     private boolean suppressTextCallback;
     private boolean persistent;
+    private boolean aiMode;
+    private CharSequence normalHint = "Search";
+    private boolean originalMarginsSaved;
+    private int originalStartMargin;
+    private int originalEndMargin;
+    private static final int AI_START = 0xFF66A1F3;
+    private static final int AI_END = 0xFF22C9A6;
     private int openDuration = 180;
     private int closeDuration = 130;
 
@@ -75,7 +90,11 @@ public class FloatingSearchBar extends FrameLayout {
         border.setColor(0x60FFFFFF);
         surface = new GlassSurfaceView(context);
         surface.setCornerRadius(dp(28));
+        surface.setTintColor(OneUIPalette.color(context, R.color.oui_search_glass));
         addView(surface, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        aiSurface = new View(context);
+        aiSurface.setVisibility(GONE);
+        addView(aiSurface, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
         LinearLayout row = new LinearLayout(context);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -85,7 +104,7 @@ public class FloatingSearchBar extends FrameLayout {
         searchIcon = new ImageView(context);
         searchIcon.setImageResource(R.drawable.oui_ic_search);
         searchIcon.setContentDescription(null);
-        int primary = context.getColor(R.color.oui_primary_text_color);
+        int primary = OneUIPalette.color(context, R.color.oui_primary_text_color);
         ColorStateList iconTint = ColorStateList.valueOf(primary);
         searchIcon.setImageTintList(iconTint);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(24), dp(24));
@@ -100,7 +119,8 @@ public class FloatingSearchBar extends FrameLayout {
         input.setPadding(0, 0, 0, 0);
         input.setTextSize(16);
         input.setTextColor(primary);
-        input.setHintTextColor(context.getColor(R.color.oui_floating_nav_secondary));
+        input.setHighlightColor(0x33777777);
+        input.setHintTextColor(OneUIPalette.color(context, R.color.oui_floating_nav_secondary));
         input.setBackgroundColor(Color.TRANSPARENT);
         input.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         input.setHint("Search");
@@ -119,22 +139,35 @@ public class FloatingSearchBar extends FrameLayout {
         });
 
         close = new ImageButton(context);
-        close.setImageResource(R.drawable.oui_ic_close);
-        close.setImageTintList(ColorStateList.valueOf(
-                context.getColor(R.color.oui_floating_nav_secondary)));
-        close.setContentDescription("Close search");
-        TypedValue ripple = new TypedValue();
-        context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless,
-                ripple, true);
-        if (ripple.resourceId != 0) close.setBackgroundResource(ripple.resourceId);
+        close.setImageDrawable(new VoiceIconDrawable(false, 2.2f, dp(18)));
+        close.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        close.setPadding(dp(8), dp(8), dp(8), dp(8));
+        close.setImageTintList(null);
+        close.setContentDescription("Voice search");
+        close.setBackgroundResource(R.drawable.oui_search_item_feedback);
         close.setOnClickListener(v -> {
-            if (closeRequested != null) closeRequested.run();
-            else close();
+            if (voiceRequested != null) voiceRequested.run();
+            else {
+                try {
+                    getContext().startActivity(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM));
+                } catch (ActivityNotFoundException ignored) { }
+            }
         });
-        LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(dp(48), dp(48));
+        LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(dp(40), dp(40));
         closeParams.leftMargin = dp(4);
-        closeParams.rightMargin = dp(8);
+        closeParams.rightMargin = dp(12);
         row.addView(close, closeParams);
+        if (attrs != null) {
+            TypedArray options = context.obtainStyledAttributes(attrs, R.styleable.FloatingSearchBar);
+            boolean startPersistent = options.getBoolean(
+                    R.styleable.FloatingSearchBar_searchPersistent, false);
+            boolean startAi = options.getBoolean(R.styleable.FloatingSearchBar_searchAiMode, false);
+            options.recycle();
+            setPersistent(startPersistent);
+            setAiMode(startAi);
+        }
     }
 
     @Override protected void dispatchDraw(Canvas canvas) {
@@ -147,6 +180,7 @@ public class FloatingSearchBar extends FrameLayout {
 
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        applyPersistentMargins();
         scheduleBlurRefresh();
     }
 
@@ -177,9 +211,66 @@ public class FloatingSearchBar extends FrameLayout {
         setTranslationY(0);
         setScaleX(1f);
         setScaleY(1f);
-        if (!enabled) setQuery("", false);
+        if (!enabled) {
+            setQuery("", true);
+            if (listener != null) listener.onVisibilityChanged(false);
+        }
+        applyPersistentMargins();
     }
     public boolean isPersistent() { return persistent; }
+    public void setAiMode(boolean enabled) {
+        aiMode = enabled;
+        surface.setVisibility(enabled ? GONE : VISIBLE);
+        aiSurface.setVisibility(enabled ? VISIBLE : GONE);
+        searchIcon.setVisibility(enabled ? GONE : VISIBLE);
+        input.setPadding(enabled ? dp(24) : 0, 0, 0, 0);
+        input.setHint(enabled ? "What are you looking for?" : normalHint);
+        input.setTextColor(enabled ? AI_START : OneUIPalette.color(getContext(), R.color.oui_primary_text_color));
+        input.setHintTextColor(enabled ? AI_START : OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary));
+        input.post(() -> {
+            input.getPaint().setShader(aiMode ? new LinearGradient(0, 0,
+                    Math.max(1, input.getWidth()), 0, AI_START, AI_END, Shader.TileMode.CLAMP) : null);
+            input.invalidate();
+        });
+        close.setImageDrawable(new VoiceIconDrawable(enabled, 2.2f, dp(18)));
+        close.setImageTintList(null);
+        if (enabled) {
+            GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                    new int[]{0xFF364B6F, OneUIPalette.color(getContext(), R.color.oui_ai_secondary_surface)});
+            gradient.setCornerRadius(dp(28));
+            aiSurface.setBackground(gradient);
+            if (android.os.Build.VERSION.SDK_INT >= 28) {
+                setOutlineAmbientShadowColor(0x6666A1F3);
+                setOutlineSpotShadowColor(0x5566A1F3);
+            }
+            setElevation(dp(14));
+            border.setColor(0x8866A1F3);
+        } else {
+            setElevation(dp(10));
+            border.setColor(0x60FFFFFF);
+        }
+        surface.setTintColor(OneUIPalette.color(getContext(), R.color.oui_search_glass));
+        invalidate();
+    }
+    public boolean isAiMode() { return aiMode; }
+    public void setOnVoiceRequested(@Nullable Runnable callback) { voiceRequested = callback; }
+    private void applyPersistentMargins() {
+        if (!(getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams)) return;
+        android.view.ViewGroup.MarginLayoutParams params =
+                (android.view.ViewGroup.MarginLayoutParams) getLayoutParams();
+        if (!originalMarginsSaved) {
+            originalStartMargin = params.getMarginStart();
+            originalEndMargin = params.getMarginEnd();
+            originalMarginsSaved = true;
+        }
+        int extra = persistent ? dp(8) : 0;
+        if (params.getMarginStart() != originalStartMargin + extra
+                || params.getMarginEnd() != originalEndMargin + extra) {
+            params.setMarginStart(originalStartMargin + extra);
+            params.setMarginEnd(originalEndMargin + extra);
+            setLayoutParams(params);
+        }
+    }
     public void setOnCloseRequested(@Nullable Runnable callback) { closeRequested = callback; }
     public void setSourceView(@Nullable android.view.View source) { surface.setSourceView(source); }
     public GlassSurfaceView getSurface() { return surface; }
@@ -193,7 +284,10 @@ public class FloatingSearchBar extends FrameLayout {
         input.setLayoutParams(params);
     }
     public ImageView getSearchIcon() { return searchIcon; }
-    public void setHint(CharSequence hint) { input.setHint(hint); }
+    public void setHint(CharSequence hint) {
+        normalHint = hint;
+        if (!aiMode) input.setHint(hint);
+    }
     public void setSearchIcon(@Nullable Drawable icon) { searchIcon.setImageDrawable(icon); }
     public void setCloseIcon(@Nullable Drawable icon) { close.setImageDrawable(icon); }
     public void setAnimationDurations(int openMillis, int closeMillis) {
@@ -230,13 +324,6 @@ public class FloatingSearchBar extends FrameLayout {
 
     public void close() {
         if (!isOpen()) return;
-        if (persistent) {
-            ((InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
-                    .hideSoftInputFromWindow(input.getWindowToken(), 0);
-            input.clearFocus();
-            setQuery("", true);
-            return;
-        }
         open = false;
         animate().cancel();
         ((InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE))
@@ -253,5 +340,42 @@ public class FloatingSearchBar extends FrameLayout {
 
     private int dp(float value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private static final class VoiceIconDrawable extends Drawable {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final boolean gradient;
+        private final float stroke;
+        private final int size;
+        VoiceIconDrawable(boolean gradient, float stroke, int size) {
+            this.gradient = gradient;
+            this.stroke = stroke;
+            this.size = size;
+        }
+        @Override public int getIntrinsicWidth() { return size; }
+        @Override public int getIntrinsicHeight() { return size; }
+        @Override public void draw(Canvas canvas) {
+            android.graphics.Rect bounds = getBounds();
+            int save = canvas.save();
+            canvas.translate(bounds.left, bounds.top);
+            canvas.scale(bounds.width() / 24f, bounds.height() / 24f);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(stroke);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setColor(gradient ? AI_START : 0xFF8A8A90);
+            paint.setShader(gradient ? new LinearGradient(4, 0, 20, 0,
+                    AI_START, AI_END, Shader.TileMode.CLAMP) : null);
+            canvas.drawRoundRect(9, 3, 15, 15, 3, 3, paint);
+            canvas.drawArc(5, 7, 19, 19, 0, 180, false, paint);
+            canvas.drawLine(12, 19, 12, 22, paint);
+            canvas.drawLine(8, 22, 16, 22, paint);
+            paint.setShader(null);
+            canvas.restoreToCount(save);
+        }
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); }
+        @Override public void setColorFilter(android.graphics.ColorFilter filter) {
+            paint.setColorFilter(filter);
+        }
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
     }
 }

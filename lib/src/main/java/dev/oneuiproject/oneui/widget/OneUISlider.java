@@ -51,10 +51,9 @@ public class OneUISlider extends View {
 
     public OneUISlider(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        activeColor = themeColor(androidx.appcompat.R.attr.colorPrimary,
-                color(R.color.oui_slider_active_color));
-        trackColor = color(R.color.oui_slider_track_color);
-        thumbFillColor = color(R.color.oui_background_color);
+        activeColor = OneUIPalette.get(context, OneUIPalette.PRIMARY);
+        trackColor = OneUIPalette.color(context, R.color.oui_slider_track_color);
+        thumbFillColor = OneUIPalette.get(context, OneUIPalette.BACKGROUND);
         tickColor = color(R.color.oui_slider_tick_color);
         warningAreaColor = color(R.color.oui_slider_warning_area_color);
         if (attrs != null) {
@@ -318,7 +317,7 @@ public class OneUISlider extends View {
         return super.performAccessibilityAction(action, arguments);
     }
 
-    private int color(int id) { return getResources().getColor(id, getContext().getTheme()); }
+    private int color(int id) { return OneUIPalette.color(getContext(), id); }
     private int themeColor(int attribute, int fallback) {
         TypedValue value = new TypedValue();
         if (!getContext().getTheme().resolveAttribute(attribute, value, true)) return fallback;

@@ -48,7 +48,7 @@ public class RelatedCard extends FrameLayout {
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         inflater.inflate(R.layout.oui_view_relative_link, this, true);
         mSurface = getChildAt(0);
-        shadowElevation = 3 * getResources().getDisplayMetrics().density;
+        shadowElevation = 2 * getResources().getDisplayMetrics().density;
         updateShadow();
 
         TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.RelatedCard,

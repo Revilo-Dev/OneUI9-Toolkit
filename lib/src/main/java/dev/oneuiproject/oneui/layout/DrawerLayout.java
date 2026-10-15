@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.layout;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import static androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_LOCKED_CLOSED;
 import static androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_UNLOCKED;
 
@@ -83,6 +85,7 @@ public class DrawerLayout extends ToolbarLayout {
     private AppCompatImageButton mHeaderButton;
     private TextView mHeaderBadge;
     private FrameLayout mDrawerContainer;
+    private GlassSurfaceView mDrawerGlass;
     private float scrimAlpha;
     private int systemBarsColor;
     private boolean pushContentOnOpen;
@@ -138,15 +141,15 @@ public class DrawerLayout extends ToolbarLayout {
         mToolbarContent = findViewById(R.id.drawerlayout_toolbar_content);
         mDrawerContent = findViewById(R.id.drawerlayout_drawer_content);
         mDrawerItems = findViewById(R.id.drawerlayout_items);
-        GlassSurfaceView glass = findViewById(R.id.drawerlayout_glass);
-        glass.setSourceView(mToolbarContent);
-        glass.setBlurEnabled(true);
-        Runnable updateGlassTint = () -> glass.setTintColor(mContext.getColor(
+        mDrawerGlass = findViewById(R.id.drawerlayout_glass);
+        mDrawerGlass.setSourceView(mToolbarContent);
+        mDrawerGlass.setBlurEnabled(true);
+        Runnable updateGlassTint = () -> mDrawerGlass.setTintColor(mContext.getColor(
                 BlurSettings.isEnabled(mContext) ? R.color.oui_drawer_glass_tint
                         : R.color.oui_floating_nav_surface));
         updateGlassTint.run();
-        BlurSettings.observe(glass, updateGlassTint);
-        glass.setCornerRadius(getResources().getDisplayMetrics().density * 28);
+        BlurSettings.observe(mDrawerGlass, updateGlassTint);
+        mDrawerGlass.setCornerRadius(getResources().getDisplayMetrics().density * 28);
 
         mHeaderView = mDrawerContent.findViewById(R.id.drawerlayout_default_header);
         mHeaderButton = mHeaderView.findViewById(R.id.drawerlayout_header_button);
@@ -155,8 +158,8 @@ public class DrawerLayout extends ToolbarLayout {
         mDrawerContainer = mDrawerContent.findViewById(R.id.drawerlayout_drawer_container);
         mDrawerContainer.getViewTreeObserver().addOnGlobalLayoutListener(
                 () -> ScrollEdgeFades.attachTree(mDrawerContainer,
-                        mContext.getColor(R.color.oui_floating_nav_surface)));
-        int scrimColor = mContext.getColor(R.color.oui_drawerlayout_drawer_dim_color);
+                        OneUIPalette.color(mContext, R.color.oui_drawer_panel_fade)));
+        int scrimColor = OneUIPalette.color(mContext, R.color.oui_drawerlayout_drawer_dim_color);
         mDrawer.setScrimColor(scrimColor);
         scrimAlpha = ((scrimColor >> 24) & 0xFF)/255f;
 
@@ -164,7 +167,7 @@ public class DrawerLayout extends ToolbarLayout {
         if (mContext.getTheme().resolveAttribute(R.attr.roundedCornerColor, sbTypedValue, true)) {
             systemBarsColor = sbTypedValue.data;
         } else {
-            systemBarsColor = ContextCompat.getColor(mContext, R.color.oui_round_and_bgcolor);
+            systemBarsColor = OneUIPalette.color(mContext, R.color.oui_round_and_bgcolor);
         }
 
         mDrawer.setDrawerElevation(0);
@@ -319,7 +322,7 @@ public class DrawerLayout extends ToolbarLayout {
         if (mHeaderButton != null) {
             mHeaderButton.setImageDrawable(icon);
             mHeaderButton.setImageTintList(ColorStateList.valueOf(
-                    mContext.getColor(R.color.oui_drawerlayout_header_icon_color)));
+                    OneUIPalette.color(mContext, R.color.oui_drawerlayout_header_icon_color)));
             mHeaderView.setVisibility(icon != null ? View.VISIBLE : View.GONE);
         } else {
             Log.e(TAG, "setDrawerButtonIcon: this method can be used " +
@@ -447,6 +450,7 @@ public class DrawerLayout extends ToolbarLayout {
         @Override
         public void onDrawerSlide(View drawerView, float slideOffset) {
             super.onDrawerSlide(drawerView, slideOffset);
+            if (mDrawerGlass != null && slideOffset > 0f) mDrawerGlass.refreshCapture();
 
             View translationView = findViewById(R.id.drawer_custom_translation);
             Window window = mActivity.getWindow();

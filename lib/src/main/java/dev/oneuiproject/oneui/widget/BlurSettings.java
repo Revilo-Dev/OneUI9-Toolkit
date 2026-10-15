@@ -10,6 +10,8 @@ import androidx.preference.PreferenceManager;
 /** App-wide switch for backdrop blur; individual components keep their own blur options. */
 public final class BlurSettings {
     public static final String KEY = "global_blur_enabled";
+    /** Downsampling shared by floating glass surfaces throughout the app. */
+    public static final int GLASS_SAMPLE_SCALE = 6;
 
     private BlurSettings() { }
 

@@ -4,5 +4,8 @@
     <item android:id="@+id/nav_list" android:icon="@drawable/list" android:title="List" />
     <item android:id="@+id/nav_cards" android:icon="@drawable/credit_card_outline" android:title="Cards" />
     <item android:id="@+id/nav_settings" android:icon="@drawable/settings_outline" android:title="Settings" />
-    <item android:id="@+id/nav_menu" android:icon="@drawable/ic_oui_drawer" android:title="Menu" />
+    <item android:id="@+id/nav_music" android:icon="@drawable/music_alt" android:title="Music" />
+    <item android:id="@+id/nav_calendar" android:icon="@drawable/calendar" android:title="Calendar" />
+    <item android:id="@+id/nav_action_cards" android:icon="@drawable/game" android:title="Action cards" />
+    <item android:id="@+id/nav_shortcuts_carousel" android:icon="@drawable/folder" android:title="Shortcuts" />
 </menu>

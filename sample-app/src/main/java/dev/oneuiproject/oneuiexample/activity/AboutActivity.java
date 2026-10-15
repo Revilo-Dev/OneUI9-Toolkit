@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneuiexample.activity;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -52,6 +54,7 @@ public class AboutActivity extends AppCompatActivity
         MaterialColorSettings.applyTheme(this);
         mBinding = ActivityAboutBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
+        OneUIPalette.applyToViewTree(mBinding.getRoot());
         mBottomContent = mBinding.aboutBottomContent;
 
         setSupportActionBar(mBinding.aboutToolbar);
@@ -143,7 +146,7 @@ public class AboutActivity extends AppCompatActivity
                 ViewUtils.SEM_ROUNDED_CORNER_TOP_LEFT | ViewUtils.SEM_ROUNDED_CORNER_TOP_RIGHT);
         ViewUtils.semSetRoundedCornerColor(mBinding.aboutBottomContent.getRoot(),
                 ViewUtils.SEM_ROUNDED_CORNER_TOP_LEFT | ViewUtils.SEM_ROUNDED_CORNER_TOP_RIGHT,
-                getColor(R.color.oui_round_and_bgcolor));
+                OneUIPalette.color(this, R.color.oui_round_and_bgcolor));
 
         Drawable appIcon = getDrawable(R.mipmap.ic_launcher);
         mBinding.aboutHeaderAppIcon.setImageDrawable(appIcon);

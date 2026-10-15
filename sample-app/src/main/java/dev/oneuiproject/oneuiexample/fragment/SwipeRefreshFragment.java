@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneuiexample.fragment;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -9,17 +11,14 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
-import androidx.fragment.app.FragmentActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.sec.sesl.tester.R;
 
-import dev.oneuiproject.oneui.layout.DrawerLayout;
-import dev.oneuiproject.oneui.widget.Toast;
+import android.widget.Toast;
 import dev.oneuiproject.oneuiexample.base.BaseFragment;
 
 public class SwipeRefreshFragment extends BaseFragment {
-
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -27,10 +26,15 @@ public class SwipeRefreshFragment extends BaseFragment {
         SwipeRefreshLayout srl = view.findViewById(R.id.swiperefresh_view);
         AppCompatButton button = view.findViewById(R.id.swiperefresh_button);
 
-        srl.setDistanceToTriggerSync(500);
-        srl.setProgressViewOffset(true, 130, 131);
+        srl.setDistanceToTriggerSync(dp(80));
+        srl.setColorSchemeColors(
+                OneUIPalette.color(requireContext(), dev.oneuiproject.oneui.design.R.color.oui_floating_nav_primary),
+                OneUIPalette.color(requireContext(), dev.oneuiproject.oneui.design.R.color.oui_floating_nav_secondary));
+        srl.setProgressBackgroundColorSchemeColor(requireContext().getColor(
+                dev.oneuiproject.oneui.design.R.color.oui_floating_nav_surface));
+        srl.setProgressViewOffset(false, dp(64), dp(124));
         srl.setOnRefreshListener(() -> {
-            Toast.makeText(mContext, "onRefresh", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "onRefresh", Toast.LENGTH_SHORT).show();
             button.setEnabled(true);
         });
 
@@ -40,6 +44,10 @@ public class SwipeRefreshFragment extends BaseFragment {
             button.setEnabled(false);
             srl.setRefreshing(false);
         });
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     @Override

@@ -74,12 +74,10 @@ public class FloatingActionBar extends LinearLayout {
     }
 
     private void updateColors() {
-        int surface = getResources().getColor(lightSurface
-                ? R.color.oui_floating_toolbar_light : R.color.oui_floating_toolbar_dark,
-                getContext().getTheme());
-        int text = getResources().getColor(lightSurface
-                ? R.color.oui_floating_toolbar_light_text : R.color.oui_floating_toolbar_dark_text,
-                getContext().getTheme());
+        int surface = OneUIPalette.color(getContext(), lightSurface
+                ? R.color.oui_floating_toolbar_light : R.color.oui_floating_toolbar_dark);
+        int text = OneUIPalette.color(getContext(), lightSurface
+                ? R.color.oui_floating_toolbar_light_text : R.color.oui_floating_toolbar_dark_text);
         GradientDrawable background = new GradientDrawable();
         background.setColor(surface);
         background.setCornerRadius(dp(32));

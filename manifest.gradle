@@ -2,7 +2,7 @@
 ext {
     // Target & Compile SDK.
     compile_sdk = 36
-    target_sdk = 31
+    target_sdk = 33
 
     // Library version.
     lib_version = "ui9-v1.0"

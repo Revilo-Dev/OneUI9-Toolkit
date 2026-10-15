@@ -37,10 +37,10 @@ public class ProgressiveBlurLayout extends FrameLayout {
             customFadeColor = a.hasValue(R.styleable.ProgressiveBlurLayout_fadeColor);
             if (customFadeColor) fadeColor = a.getColor(
                     R.styleable.ProgressiveBlurLayout_fadeColor,
-                    context.getColor(R.color.oui_background_color));
+                    OneUIPalette.color(context, R.color.oui_background_color));
             a.recycle();
         }
-        if (!customFadeColor) fadeColor = context.getColor(R.color.oui_background_color);
+        if (!customFadeColor) fadeColor = OneUIPalette.color(context, R.color.oui_background_color);
         setWillNotDraw(false);
         BlurSettings.observe(this);
     }

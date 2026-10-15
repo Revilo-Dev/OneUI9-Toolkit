@@ -1,7 +1,10 @@
 package dev.oneuiproject.oneuiexample.activity;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.Intent;
+import android.speech.RecognizerIntent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
@@ -15,6 +18,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.MenuCompat;
 import androidx.fragment.app.Fragment;
@@ -38,6 +43,7 @@ import dev.oneuiproject.oneuiexample.base.FragmentInfo;
 import dev.oneuiproject.oneuiexample.fragment.AppPickerFragment;
 import dev.oneuiproject.oneuiexample.fragment.IconsFragment;
 import dev.oneuiproject.oneuiexample.fragment.IndexScrollFragment;
+import dev.oneuiproject.oneuiexample.fragment.NowBarFragment;
 import dev.oneuiproject.oneuiexample.fragment.PickersFragment;
 import dev.oneuiproject.oneuiexample.fragment.PreferencesFragment;
 import dev.oneuiproject.oneuiexample.fragment.ProgressBarFragment;
@@ -49,6 +55,7 @@ import dev.oneuiproject.oneuiexample.fragment.ToolbarFragment;
 import dev.oneuiproject.oneuiexample.fragment.WidgetsFragment;
 import dev.oneuiproject.oneuiexample.ui.drawer.DrawerListAdapter;
 import dev.oneuiproject.oneuiexample.utils.DarkModeUtils;
+import dev.oneuiproject.oneuiexample.notification.NowBarNotifications;
 
 public class MainActivity extends AppCompatActivity
         implements DrawerListAdapter.DrawerListener {
@@ -59,6 +66,15 @@ public class MainActivity extends AppCompatActivity
     private View toolbarBar;
     private ScrollView searchResults;
     private LinearLayout searchResultRows;
+    private boolean nowBarSelected;
+    private final ActivityResultLauncher<Intent> voiceSearch = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getData() == null) return;
+                ArrayList<String> matches = result.getData()
+                        .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                if (matches != null && !matches.isEmpty())
+                    mBinding.drawerLayout.getFloatingSearchBar().setQuery(matches.get(0), true);
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,8 +82,15 @@ public class MainActivity extends AppCompatActivity
         MaterialColorSettings.applyTheme(this);
         mBinding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(mBinding.getRoot());
+        OneUIPalette.applyToViewTree(mBinding.getRoot());
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(
                 new FragmentManager.FragmentLifecycleCallbacks() {
+                    @Override public void onFragmentViewCreated(@NonNull FragmentManager manager,
+                                                                @NonNull Fragment fragment,
+                                                                @NonNull View view,
+                                                                Bundle state) {
+                        OneUIPalette.applyToViewTree(view);
+                    }
                     @Override public void onFragmentStarted(@NonNull FragmentManager manager,
                                                             @NonNull Fragment fragment) {
                         if (fragment instanceof DialogFragment)
@@ -83,6 +106,7 @@ public class MainActivity extends AppCompatActivity
         initFragmentList();
         initDrawer();
         initFragments();
+        openNowBarIfRequested(getIntent());
         initSearch();
 
         mBinding.drawerLayout.post(() -> {
@@ -108,6 +132,7 @@ public class MainActivity extends AppCompatActivity
     private void initFragmentList() {
         fragments.add(new WidgetsFragment());
         fragments.add(new ProgressBarFragment());
+        fragments.add(new NowBarFragment());
         fragments.add(new SeekBarFragment());
         fragments.add(new SwipeRefreshFragment());
         fragments.add(new PreferencesFragment());
@@ -121,6 +146,23 @@ public class MainActivity extends AppCompatActivity
         fragments.add(null);
         fragments.add(new QRCodeFragment());
         fragments.add(new IconsFragment());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        openNowBarIfRequested(intent);
+    }
+
+    private void openNowBarIfRequested(Intent intent) {
+        if (intent == null || !intent.getBooleanExtra("open_now_bar", false)) return;
+        for (int i = 0; i < fragments.size(); i++) {
+            if (fragments.get(i) instanceof NowBarFragment) {
+                onDrawerItemSelected(i);
+                break;
+            }
+        }
     }
 
     @Override
@@ -150,13 +192,26 @@ public class MainActivity extends AppCompatActivity
         getMenuInflater().inflate(R.menu.sample3_menu_main, menu);
         MenuItem search = menu.findItem(R.id.menu_search_pages);
         if (search != null && search.getIcon() != null)
-            search.getIcon().mutate().setTint(getColor(R.color.oui_primary_text_color));
+            search.getIcon().mutate().setTint(OneUIPalette.color(this, R.color.oui_primary_text_color));
         MenuCompat.setGroupDividerEnabled(menu, true);
         return true;
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
+        MenuItem settings = menu.findItem(R.id.menu_live_update_settings);
+        if (settings != null) {
+            settings.setVisible(nowBarSelected);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.menu_live_update_settings) {
+            NowBarNotifications.openSettings(this);
+            return true;
+        }
         if (item.getItemId() == R.id.menu_search_pages) {
             toggleSearch();
             return true;
@@ -199,7 +254,7 @@ public class MainActivity extends AppCompatActivity
     private void initSearch() {
         searchResults = new ScrollView(this);
         searchResults.setFillViewport(true);
-        searchResults.setBackgroundColor(getColor(R.color.oui_background_color));
+        searchResults.setBackgroundColor(OneUIPalette.color(this, R.color.oui_background_color));
         searchResults.setVisibility(View.GONE);
         searchResultRows = new LinearLayout(this);
         searchResultRows.setOrientation(LinearLayout.VERTICAL);
@@ -208,8 +263,14 @@ public class MainActivity extends AppCompatActivity
         mBinding.mainContent.addView(searchResults, new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         dev.oneuiproject.oneui.widget.ScrollEdgeFades.attach(searchResults)
-                .setColor(getColor(R.color.oui_background_color));
+                .setColor(OneUIPalette.color(this, R.color.oui_background_color));
         mBinding.drawerLayout.getFloatingSearchBar().setHint("Search pages");
+        mBinding.drawerLayout.getFloatingSearchBar().setOnVoiceRequested(() -> {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            if (intent.resolveActivity(getPackageManager()) != null) voiceSearch.launch(intent);
+        });
         mBinding.drawerLayout.setSearchModeListener(new dev.oneuiproject.oneui.layout.ToolbarLayout.SearchModeListener() {
             @Override public boolean onQueryTextSubmit(String query) { return false; }
             @Override public boolean onQueryTextChange(String text) {
@@ -218,6 +279,7 @@ public class MainActivity extends AppCompatActivity
             }
             @Override public void onSearchModeToggle(FloatingSearchBar bar, boolean visible) {
                 searchResults.setVisibility(visible ? View.VISIBLE : View.GONE);
+                bar.setSourceView(visible ? searchResults : mBinding.mainContent);
                 if (visible) {
                     searchResults.bringToFront();
                     updateSearchResults(bar.getQuery());
@@ -247,12 +309,12 @@ public class MainActivity extends AppCompatActivity
             final int selected = index;
             TextView row = new TextView(this);
             row.setText(title);
-            row.setTextColor(getColor(R.color.oui_primary_text_color));
+            row.setTextColor(OneUIPalette.color(this, R.color.oui_primary_text_color));
             row.setTextSize(18);
             row.setGravity(android.view.Gravity.CENTER_VERTICAL);
             row.setMinHeight(dp(56));
             row.setPadding(dp(16), 0, dp(16), 0);
-            row.setBackgroundResource(android.R.drawable.list_selector_background);
+            row.setBackgroundResource(R.drawable.oui_search_item_feedback);
             row.setOnClickListener(v -> onDrawerItemSelected(selected));
             container.addView(row, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -260,7 +322,7 @@ public class MainActivity extends AppCompatActivity
         if (container.getChildCount() == 0) {
             TextView empty = new TextView(this);
             empty.setText("No matching pages");
-            empty.setTextColor(getColor(R.color.oui_floating_nav_secondary));
+            empty.setTextColor(OneUIPalette.color(this, R.color.oui_floating_nav_secondary));
             empty.setPadding(dp(16), dp(24), dp(16), dp(24));
             container.addView(empty);
         }
@@ -274,11 +336,13 @@ public class MainActivity extends AppCompatActivity
     public boolean onDrawerItemSelected(int position) {
         if (mBinding.drawerLayout.isSearchMode()) mBinding.drawerLayout.dismissSearchMode();
         Fragment newFragment = fragments.get(position);
+        nowBarSelected = newFragment instanceof NowBarFragment;
         FragmentTransaction transaction = mFragmentManager.beginTransaction();
         for (Fragment fragment : mFragmentManager.getFragments()) {
             transaction.hide(fragment);
         }
         transaction.show(newFragment).commit();
+        invalidateOptionsMenu();
 
         if (newFragment instanceof TabsFragment && navigationBar == null
                 && newFragment.getView() != null)

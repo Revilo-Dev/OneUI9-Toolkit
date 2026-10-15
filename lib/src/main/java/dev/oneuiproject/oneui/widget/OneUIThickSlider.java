@@ -58,11 +58,10 @@ public class OneUIThickSlider extends View {
     public OneUIThickSlider(Context context) { this(context, null); }
     public OneUIThickSlider(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
-        activeColor = themeColor(context, androidx.appcompat.R.attr.colorPrimary,
-                context.getColor(R.color.oui_slider_active_color));
-        trackColor = context.getColor(R.color.oui_slider_track_color);
-        warningAreaColor = context.getColor(R.color.oui_slider_warning_area_color);
-        errorColor = context.getColor(R.color.oui_functional_red_color);
+        activeColor = OneUIPalette.get(context, OneUIPalette.PRIMARY);
+        trackColor = OneUIPalette.color(context, R.color.oui_slider_track_color);
+        warningAreaColor = OneUIPalette.color(context, R.color.oui_slider_warning_area_color);
+        errorColor = OneUIPalette.color(context, R.color.oui_functional_red_color);
         if (attrs != null) {
             TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.OneUIThickSlider);
             vertical = a.getBoolean(R.styleable.OneUIThickSlider_thickVertical, false);
@@ -159,7 +158,7 @@ public class OneUIThickSlider extends View {
             paint.setFilterBitmap(true);
             canvas.drawBitmap(backdrop, null, new RectF(0, 0, getWidth(), getHeight()), paint);
             paint.setFilterBitmap(false);
-            paint.setColor(0x30FFFFFF);
+            paint.setColor(0x18FFFFFF);
         } else {
             paint.setColor(trackColor);
         }
@@ -179,16 +178,17 @@ public class OneUIThickSlider extends View {
         }
         int fill = inWarningRange() ? errorColor : activeColor;
         paint.setColor(fill);
-        if (vertical) {
-            float fillTop = Math.min(track.bottom - track.width(),
-                    track.bottom - track.height() * fraction());
+        float filledFraction = fraction();
+        if (filledFraction > 0f && vertical) {
+            float fillHeight = track.height() * filledFraction;
+            float fillTop = track.bottom - fillHeight;
             canvas.drawRoundRect(track.left, fillTop, track.right, track.bottom,
-                    radius, radius, paint);
-        } else {
-            float fillRight = Math.max(track.left + track.height(),
-                    track.left + track.width() * fraction());
+                    Math.min(radius, fillHeight / 2f), Math.min(radius, fillHeight / 2f), paint);
+        } else if (filledFraction > 0f) {
+            float fillWidth = track.width() * filledFraction;
+            float fillRight = track.left + fillWidth;
             canvas.drawRoundRect(track.left, track.top, fillRight, track.bottom,
-                    radius, radius, paint);
+                    Math.min(radius, fillWidth / 2f), Math.min(radius, fillWidth / 2f), paint);
         }
         canvas.restoreToCount(save);
 
@@ -222,10 +222,10 @@ public class OneUIThickSlider extends View {
         if (showMenuButton) {
             paint.setColor(vertical ? contrastColor(trackColor) : contrastColor(fill));
             float centerX = vertical ? track.centerX() : track.right - dp(28);
-            float centerY = track.top + dp(vertical ? 24 : 20);
+            float centerY = vertical ? track.top + dp(28) : track.centerY();
             for (int i = -1; i <= 1; i++)
-                canvas.drawCircle(centerX + (vertical ? 0 : i * dp(8)),
-                        centerY + (vertical ? i * dp(8) : 0), dp(2f), paint);
+                canvas.drawCircle(centerX + (vertical ? i * dp(8) : 0),
+                        centerY + (vertical ? 0 : i * dp(8)), dp(2f), paint);
         }
     }
 
@@ -234,8 +234,9 @@ public class OneUIThickSlider extends View {
                 || SystemClock.uptimeMillis() - lastBackdropCapture < 80) return;
         View source = getRootView();
         if (source == this) return;
-        int width = Math.max(1, (getWidth() + 5) / 6);
-        int height = Math.max(1, (getHeight() + 5) / 6);
+        int scale = BlurSettings.GLASS_SAMPLE_SCALE;
+        int width = Math.max(1, (getWidth() + scale - 1) / scale);
+        int height = Math.max(1, (getHeight() + scale - 1) / scale);
         if (backdrop == null || backdrop.getWidth() != width || backdrop.getHeight() != height) {
             if (backdrop != null) backdrop.recycle();
             backdrop = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);

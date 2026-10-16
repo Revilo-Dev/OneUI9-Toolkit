@@ -219,6 +219,8 @@ public class PickersFragment extends BaseFragment
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH));
         dialog.show();
+        dev.oneuiproject.oneui.widget.DialogBlur.apply(dialog);
+        dialog.setOnDismissListener(d -> dev.oneuiproject.oneui.widget.DialogBlur.release(dialog));
     }
 
     private void openTimePickerDialog() {
@@ -232,6 +234,8 @@ public class PickersFragment extends BaseFragment
                 calendar.get(Calendar.MINUTE),
                 DateFormat.is24HourFormat(mContext));
         dialog.show();
+        dev.oneuiproject.oneui.widget.DialogBlur.apply(dialog);
+        dialog.setOnDismissListener(d -> dev.oneuiproject.oneui.widget.DialogBlur.release(dialog));
     }
 
     private void openStartEndTimePickerDialog() {
@@ -240,6 +244,8 @@ public class PickersFragment extends BaseFragment
                 DateFormat.is24HourFormat(mContext),
                 (startTime, endTime) -> android.widget.Toast.makeText(mContext, "Start: H:" + startTime / 60 + " M:" + startTime % 60 + "\nEnd: H:" + endTime / 60 + " M:" + endTime % 60, Toast.LENGTH_SHORT).show());
         dialog.show();
+        dev.oneuiproject.oneui.widget.DialogBlur.apply(dialog);
+        dialog.setOnDismissListener(d -> dev.oneuiproject.oneui.widget.DialogBlur.release(dialog));
     }
 
     private void openColorPickerDialog() {
@@ -247,6 +253,8 @@ public class PickersFragment extends BaseFragment
                 mCurrentColor, buildIntArray(mRecentColors), true);
         dialog.setTransparencyControlEnabled(true);
         dialog.show();
+        dev.oneuiproject.oneui.widget.DialogBlur.apply(dialog);
+        dialog.setOnDismissListener(d -> dev.oneuiproject.oneui.widget.DialogBlur.release(dialog));
     }
 
     @Override

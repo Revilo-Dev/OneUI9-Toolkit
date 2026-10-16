@@ -13,6 +13,10 @@ public final class SurfaceShadow {
         boolean light = (view.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES;
         view.setElevation(enabled && light ? Math.max(0, elevation) : 0);
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            view.setOutlineAmbientShadowColor(0x18000000);
+            view.setOutlineSpotShadowColor(0x18000000);
+        }
         if (enabled) {
             view.setOutlineProvider(new ViewOutlineProvider() {
                 @Override public void getOutline(View target, Outline outline) {

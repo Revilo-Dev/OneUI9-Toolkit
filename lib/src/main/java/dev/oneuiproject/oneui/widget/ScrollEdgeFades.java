@@ -25,15 +25,20 @@ import dev.oneuiproject.oneui.design.R;
 /** Attaches touch-transparent scroll edge fades without changing a page's view hierarchy. */
 public final class ScrollEdgeFades {
     private final View scrollable;
+    private ViewGroup overlayHost;
+    private boolean detached;
     private final EdgeDrawable drawable = new EdgeDrawable();
     private final ViewTreeObserver.OnScrollChangedListener scrollListener = this::refresh;
     private final View.OnLayoutChangeListener layoutListener = (v, l, t, r, b, ol, ot, or, ob) -> refresh();
     private final View.OnAttachStateChangeListener attachListener = new View.OnAttachStateChangeListener() {
         @Override public void onViewAttachedToWindow(View v) {
+            attachToViewport();
             v.getViewTreeObserver().addOnScrollChangedListener(scrollListener);
             refresh();
         }
         @Override public void onViewDetachedFromWindow(View v) {
+            if (overlayHost != null) overlayHost.getOverlay().remove(drawable);
+            overlayHost = null;
             if (v.getViewTreeObserver().isAlive())
                 v.getViewTreeObserver().removeOnScrollChangedListener(scrollListener);
         }
@@ -48,7 +53,7 @@ public final class ScrollEdgeFades {
         scrollable = view;
         topHeight = bottomHeight = Math.round(56 * view.getResources().getDisplayMetrics().density);
         color = resolveSurfaceColor(view);
-        view.getOverlay().add(drawable);
+        attachToViewport();
         if (view.isAttachedToWindow())
             view.getViewTreeObserver().addOnScrollChangedListener(scrollListener);
         view.addOnAttachStateChangeListener(attachListener);
@@ -114,7 +119,7 @@ public final class ScrollEdgeFades {
             Integer color = null;
             if (background instanceof ColorDrawable)
                 color = ((ColorDrawable) background).getColor();
-            else if (background instanceof GradientDrawable) {
+            else if (background instanceof GradientDrawable && android.os.Build.VERSION.SDK_INT >= 24) {
                 ColorStateList colors = ((GradientDrawable) background).getColor();
                 if (colors != null) color = colors.getDefaultColor();
             }
@@ -139,7 +144,9 @@ public final class ScrollEdgeFades {
     }
     public ScrollEdgeFades setColor(int fadeColor) { color = fadeColor; refresh(); return this; }
     public void detach() {
-        scrollable.getOverlay().remove(drawable);
+        detached = true;
+        if (overlayHost != null) overlayHost.getOverlay().remove(drawable);
+        overlayHost = null;
         if (scrollable.getViewTreeObserver().isAlive())
             scrollable.getViewTreeObserver().removeOnScrollChangedListener(scrollListener);
         scrollable.removeOnLayoutChangeListener(layoutListener);
@@ -147,33 +154,61 @@ public final class ScrollEdgeFades {
         scrollable.setTag(R.id.oui_scroll_edge_fades, null);
     }
 
+    private void attachToViewport() {
+        if (detached) return;
+        ViewGroup parent = scrollable.getParent() instanceof ViewGroup ? (ViewGroup) scrollable.getParent() : null;
+        if (overlayHost == parent) return;
+        if (overlayHost != null) overlayHost.getOverlay().remove(drawable);
+        overlayHost = parent;
+        if (overlayHost != null) overlayHost.getOverlay().add(drawable);
+    }
+
     private void refresh() {
-        int scrollY = scrollable.getScrollY();
-        drawable.setBounds(0, scrollY, scrollable.getWidth(), scrollY + scrollable.getHeight());
+        if (detached) return;
+        attachToViewport();
+        if (overlayHost == null) return;
+        // This layer belongs to the stationary parent, never the scrolling render node.
+        drawable.setBounds(0, 0, overlayHost.getWidth(), overlayHost.getHeight());
         drawable.invalidateSelf();
     }
 
     private final class EdgeDrawable extends Drawable {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private LinearGradient topGradient, bottomGradient;
+        private int gradientColor, topSize = -1, bottomSize = -1;
+
         @Override public void draw(@NonNull Canvas canvas) {
-            if (!BlurSettings.isEnabled(scrollable.getContext())) return;
-            int width = getBounds().width();
-            int height = getBounds().height();
-            int top = getBounds().top;
+            if (overlayHost == null || !scrollable.isShown() || !BlurSettings.isEnabled(scrollable.getContext())) return;
+            int width = scrollable.getWidth(), height = scrollable.getHeight();
             if (width == 0 || height == 0) return;
+            int save = canvas.save();
+            canvas.translate(scrollable.getLeft(), scrollable.getTop());
+            canvas.clipRect(0, 0, width, height);
             if (topAllowed && topHeight > 0 && scrollable.canScrollVertically(-1))
-                drawEdge(canvas, top, Math.min(topHeight, height), true, width);
+                drawEdge(canvas, 0, Math.min(topHeight, height), true, width);
             if (bottomAllowed && bottomHeight > 0 && scrollable.canScrollVertically(1)) {
                 int size = Math.min(bottomHeight, height);
-                drawEdge(canvas, top + height - size, size, false, width);
+                drawEdge(canvas, height - size, size, false, width);
             }
+            canvas.restoreToCount(save);
         }
+
         private void drawEdge(Canvas canvas, int y, int size, boolean top, int width) {
+            if (gradientColor != color) { topGradient = bottomGradient = null; gradientColor = color; }
             int clear = color & 0x00ffffff;
-            paint.setShader(new LinearGradient(0, y, 0, y + size,
-                    top ? color : clear, top ? clear : color, Shader.TileMode.CLAMP));
-            canvas.drawRect(0, y, width, y + size, paint);
+            if (top && (topGradient == null || topSize != size)) {
+                topGradient = new LinearGradient(0, 0, 0, size, color, clear, Shader.TileMode.CLAMP);
+                topSize = size;
+            } else if (!top && (bottomGradient == null || bottomSize != size)) {
+                bottomGradient = new LinearGradient(0, 0, 0, size, clear, color, Shader.TileMode.CLAMP);
+                bottomSize = size;
+            }
+            int save = canvas.save();
+            canvas.translate(0, y);
+            paint.setShader(top ? topGradient : bottomGradient);
+            canvas.drawRect(0, 0, width, size, paint);
             paint.setShader(null);
+            canvas.restoreToCount(save);
         }
         @Override public void setAlpha(int alpha) { }
         @Override public void setColorFilter(ColorFilter filter) { }

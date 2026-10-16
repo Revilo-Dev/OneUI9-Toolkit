@@ -7,7 +7,7 @@
     android:paddingEnd="@dimen/oui_relative_link_view_margin_start_end"
     android:paddingBottom="@dimen/oui_relative_link_view_margin_top_bottom"
     android:orientation="vertical"
-    android:background="@drawable/oui_relative_link_background">
+    android:background="@color/oui_surface_color" android:tag="oneui.palette.surface">
 
     <LinearLayout
         android:layout_width="match_parent"

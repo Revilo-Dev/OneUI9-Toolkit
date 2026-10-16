@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
             android:paddingVertical="16dp">
@@ -55,7 +55,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
             android:padding="20dp">
 
             <TextView android:id="@+id/now_bar_status"

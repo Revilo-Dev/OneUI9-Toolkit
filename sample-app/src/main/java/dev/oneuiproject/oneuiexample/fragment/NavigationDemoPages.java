@@ -186,7 +186,7 @@ final class NavigationDemoPages {
             IconRowView row = exampleRow(context, i);
             row.setTitle("Example item " + (i + 1));
             row.setSubtitle("Example subtitle");
-            row.setCardBackgroundColor(context.getColor(R.color.nav_demo_list_surface));
+            row.setCardBackgroundColor(OneUIPalette.get(context, OneUIPalette.SURFACE));
             addRow(context, content, row);
         }
     }
@@ -203,7 +203,7 @@ final class NavigationDemoPages {
             card.setTitle("Example card " + (i + 1));
             card.setSubtitle("Example");
             card.setExpandedText("Example text");
-            card.setCardBackgroundColor(context.getColor(R.color.nav_demo_card_surface));
+            card.setCardBackgroundColor(OneUIPalette.get(context, OneUIPalette.SURFACE));
             addRow(context, content, card);
         }
     }

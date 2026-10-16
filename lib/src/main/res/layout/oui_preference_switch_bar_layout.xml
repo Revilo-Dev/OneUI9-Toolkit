@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.appcompat.widget.SeslSwitchBar xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/switchBar"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@color/oui_round_and_bgcolor" />
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/switchBar" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:minHeight="52dp"
+    android:paddingStart="24dp" android:paddingEnd="16dp"
+    android:orientation="horizontal" android:gravity="center_vertical">
+    <TextView android:id="@android:id/title" android:layout_width="0dp"
+        android:layout_height="wrap_content" android:layout_weight="1"
+        android:textSize="17sp" android:paddingVertical="12dp" />
+    <androidx.appcompat.widget.SwitchCompat android:id="@+id/switch_bar_toggle"
+        android:layout_width="wrap_content" android:layout_height="48dp"
+        android:layout_marginStart="16dp" />
+</LinearLayout>

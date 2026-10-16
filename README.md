@@ -1,276 +1,176 @@
-<p align="center">
-  <img loading="lazy" src="readme-res/design-readme-header.png"/>
-  <br><br>
-  <a href="https://t.me/oneuiproject"><img src="https://img.shields.io/badge/Telegram-OneUI_Project-blue.svg?style=for-the-badge&logo=Telegram"/></a>
-  <a href="https://mvnrepository.com/artifact/io.github.oneuiproject/design"><img src="https://img.shields.io/maven-central/v/io.github.oneuiproject/design?color=%23C71A36&label=Maven&logo=Apache%20Maven&logoColor=%23C11920&style=for-the-badge"/></a>
-  <h3 align="center"><a href="sample-app/release/sample-app-release.apk">Bundled sample APK</a></h3>
-</p>
+# OneUI Design · revilodev fork
 
-<h1 align="center">OneUI Design · revilodev fork</h1>
+Android One UI components, layouts, dialogs and preferences, with a runnable component gallery. Maintained by **revilodev**, based on [OneUIProject/oneui-design](https://github.com/OneUIProject/oneui-design) by **Yanndroid** and **BlackMesa123**. Original credits and copyright remain in [LICENSE](LICENSE).
 
-This fork is developed by **revilodev** and builds on the original [OneUIProject/oneui-design](https://github.com/OneUIProject/oneui-design) by **Yanndroid** and **BlackMesa123**. Their work and copyright remain credited in [LICENSE](LICENSE).
+**[Component wiki](docs/wiki.md)** · **[Component catalogue](docs/components-and-settings.md)** · **[Palette and blur](docs/color-palette-and-blur.md)** · **[Settings example](docs/settings-page-example.md)**
 
-**Full guide:** [Components and settings](docs/components-and-settings.md) lists the public components, appearance preferences, blur, palette roles, component styles, and integration examples.
+## What is included
 
-In this repository you'll find:
-- Source code of the [oneui-design library](#oneui-design-module)
-- Source code of the [One UI Sample app](#oneui-sample-app)
-- The [complete component and settings guide](docs/components-and-settings.md)
+- Widgets, progress bars, Now Bar notifications, seek bars, swipe refresh, Preferences, Navigation, Toolbar, app picker, Contacts, date/time/color pickers, QR codes and icons.
+- Collapsing headers with fixed icon positions. Rounded action backgrounds fade in behind the icons without moving them. The header remains transparent between controls.
+- Live frosted drawer and floating surfaces, shared blur intensity and glass opacity controls, and solid fallbacks when blur is off.
+- Device color palette support, independent custom light/dark colors, and `usesColorPalette` on individual components.
+- Continuous, stepped, vertical, warning-range and thick sliders; a smaller toggle thumb contained inside its track.
+- Floating navigation with page swipes and a More grid; floating toolbars, search and contextual Cancel/Save actions.
+- Rounded cards, icon rows, image tiles, scroll-to-top controls and preference components.
 
-Any form of contribution, suggestions, bug report or feature request will be welcome.
+The sample starts at Widgets and creates demo pages when opened. Search and the drawer use the same page list. The sample-only carousel, action card and shortcut grid classes live in `sample-app`; they are separate from the library API.
 
-# OneUI Design Module
+## Build and run
 
-The `oneui-design` library (distinct from the older [OneUI Design Library](https://github.com/OneUIProject/OneUI-Design-Library)) contains custom One UI views, layouts, dialogs, and preferences. It builds on [oneui-core](https://github.com/OneUIProject/oneui-core). This fork's current API and settings are documented in [components-and-settings.md](docs/components-and-settings.md); the [original documentation](https://oneuiproject.github.io/design/) covers the upstream project.
+Open the repository in Android Studio with Android SDK 36 and a compatible JDK. This checkout was built with **JDK 21**, **Gradle 9.5.1** and **Android Gradle Plugin 9.3.1**. Versions are centralized in [manifest.gradle](manifest.gradle). The library supports **API 23+**; the sample compiles against **36** and targets **33**. These values describe the current source, rather than a completed migration to a newer Android target.
 
-## Usage
+```shell
+# Windows: use gradlew.bat in place of ./gradlew.
+./gradlew :sample-app:assembleDebug
+./gradlew :sample-app:installDebug
+./gradlew :lib:assembleRelease
+```
 
-- Make sure your Android project has [oneui-core](https://github.com/OneUIProject/oneui-core#usage) libraries implemented;
+The sample APK is written to `sample-app/build/outputs/apk/debug/sample-app-debug.apk`. The library AAR is written under `lib/build/outputs/aar/`. The [bundled release APK](sample-app/release/sample-app-release.apk) and old screenshots are historical snapshots; build the current source for these changes.
 
-- Add the design library in your dependencies:
+After dependencies have been downloaded, add `--offline` to build from the local cache. The legacy SESL picker artifacts currently share a namespace; the compatibility settings in [gradle.properties](gradle.properties) are intentional.
+
+## Use this fork in an app
+
+For the exact APIs in this checkout, include the `lib` module in your project and depend on it:
+
 ```groovy
+// settings.gradle, after copying the lib directory into your project
+include ':app', ':lib'
+
+// app/build.gradle
 dependencies {
-    // ...
-    implementation 'io.github.oneuiproject:design:<version>'
+    implementation project(':lib')
 }
 ```
 
-- Apply the main theme in your AndroidManifest file:
+Keep the SESL dependency versions aligned with [manifest.gradle](manifest.gradle). This library uses the OneUIProject SESL variants of AppCompat and Material. The upstream Maven coordinate `io.github.oneuiproject:design:<version>` is available separately; it does not automatically contain this fork's unpublished changes.
+
+Apply the theme:
+
 ```xml
-<application
-    ...
-    android:theme="@style/OneUITheme" >
-    ...
-</application>
+<application android:theme="@style/OneUITheme" ... />
 ```
 
-If you use the sample's app-wide palette behavior, apply it before inflating each activity:
+Apply appearance settings before inflating each activity. Use `PaletteInflater` when standard XML controls should also read `usesColorPalette`:
 
 ```java
+private LayoutInflater paletteInflater;
+
+@Override public LayoutInflater getLayoutInflater() {
+    if (paletteInflater == null) {
+        paletteInflater = PaletteInflater.create(this, super.getLayoutInflater());
+    }
+    return paletteInflater;
+}
+
 @Override protected void onCreate(Bundle state) {
     super.onCreate(state);
     MaterialColorSettings.applyTheme(this);
-    setContentView(R.layout.activity_main);
+    View content = getLayoutInflater().inflate(R.layout.screen, null);
+    setContentView(content);
+    OneUIPalette.applyToViewTree(content);
 }
 ```
 
-Recreate the activity after changing Material mode or a saved palette color. The sample app already wires this into its Preferences page.
+Import these helpers from `dev.oneuiproject.oneui.widget`. Reapply the tree when adding recycled or deferred standard controls; unchanged views are cached. The sample activities provide complete working examples. Recreate the activity after changing the system palette switch or saved palette colors so XML resources and native controls reload together.
 
-# OneUI Sample App
+## Component syntax
 
-<p align="center"><img loading="lazy" src="readme-res/sample-ss1.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss2.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss3.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss4.jpg" height="280"/> <img loading="lazy" src="readme-res/sample-ss5.jpg" height="280"/></p>
-
-The One UI Sample app showcases components from [oneui-core](https://github.com/OneUIProject/oneui-core) and this [oneui-design](#oneui-design-module) module. Its drawer pages include Widgets, Progress bars, Now Bar, Seek bars, Swipe refresh, Preferences, Tabs, Toolbar, App picker, Index scroll, Pickers, QR code, and Icons. Build the app from source for the latest changes; the [bundled APK](sample-app/release/sample-app-release.apk) is a release snapshot.
-
-## Features
-- Supports Android 6.0 (api 23) and above;
-- Supports both Samsung and non-Samsung devices;
-- Includes `ProgressiveBlurLayout` for fading blur at the top and bottom of scrollable content (API 23+);
-- Includes `FloatingNavigationBar` for a floating navigation pill with optional labels, backdrop blur, and a separate end action;
-- Includes `OneUISlider` and `FloatingToolbar` for the thicker slider treatment and compact contextual actions;
-- Includes a component-wide **Default OneUI** palette with editable light and dark Primary, Secondary, Background, Foreground, Surface, Surface variant, Outline, and Error roles;
-- Can switch between saved OneUI colors and Android 12+ wallpaper colors in Preferences;
-- Includes an app-wide blur switch and local blur, tint, shadow, shape, and motion controls;
-- Includes Now Bar, shortcut, carousel, and action card demonstrations in the sample app;
-- Example UI for the following components:
-  - AppCompat (Base widgets/theme);
-  - Material Components ([Tabs](https://material.io/components/tabs), [Bottom navigation](https://material.io/components/bottom-navigation));
-  - Date/Time/Color pickers;
-  - ListViews (AppPicker, Contacts, Icons);
-  - Preferences;
-  - Swipe to Refresh;
-
-## Appearance and component settings
-
-Open **Preferences** in the sample app to change light/dark mode, turn blur on or off, select Android wallpaper colors, and edit the **Default OneUI palette**. With Material theming disabled, participating library components use the app's Default OneUI palette throughout the app. Its starting colors are the existing light and dark resources; editing a role saves a separate color for each mode. Use **Reset this mode to Default OneUI** to restore those defaults. Android 12+ wallpaper colors take priority while Material theming is enabled.
-
-Use `OneUIPalette.get(context, OneUIPalette.PRIMARY)` to read a semantic color, `OneUIPalette.set(context, role, dark, color)` to change one, and `OneUIPalette.reset(context, dark)` to reset a mode. `OneUIPalette.color(context, R.color.oui_...)` maps existing component resources to the active palette. For XML views, the sample calls `OneUIPalette.applyToViewTree(root)` after inflation and tags palette backgrounds with `oneui.palette.background` or `oneui.palette.surface`. Direct per-view setters still let you style an individual control. The [full guide](docs/components-and-settings.md#appearance-preferences) explains all eight roles and integration steps.
-
-`BlurSettings.setEnabled(context, false)` turns off participating backdrop blur and scroll fades app-wide. Use `setBlurEnabled` on an individual floating control, `setStickyActionBlurEnabled` on `ToolbarLayout`, `setCardBlurEnabled` on `GridMenuDialog`, or `setBlurSampleScale` on `GlassSurfaceView` for local styling. The [component table](docs/components-and-settings.md#component-catalog) lists the rest of the public views and their settings.
-
-The sample also includes these newer demonstrations:
-
-| Demo | What it shows |
-| --- | --- |
-| Now Bar | Normal and timer notifications with a live status display |
-| Navigation | A floating bar with a More grid for extra destinations and page swipes |
-| Widgets | Horizontal carousel, action cards, and a six-shortcut grid |
-| Search | A floating search pill with voice input and filtered results |
-
-# Scroll edge fades
-
-The Flow-style progressive effect is a themed color fade, not a pixel blur. `ToolbarLayout` and `DrawerLayout` install it on every scrollable page descendant, including `RecyclerView`, `ListView`, `ScrollView`, and `NestedScrollView`. The scrolling content overlaps the collapsed toolbar so the top fade begins directly below the status bar. It appears only when more content exists in that direction and never consumes touch events. To use it outside those layouts, call `ScrollEdgeFades.attach(scrollable)` or wrap a single scrolling view in `ProgressiveBlurLayout`. Both default to 56dp edges. The existing `blurHeight`, `blurTop`, and `blurBottom` XML names remain supported by the wrapper.
-
-```xml
-<dev.oneuiproject.oneui.widget.ProgressiveBlurLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    app:blurHeight="56dp">
-
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-</dev.oneuiproject.oneui.widget.ProgressiveBlurLayout>
-```
-
-Use `setFadeHeights(topPx, bottomPx)`, `setBlurEdges(top, bottom)`, and `setFadeColor(color)` on the wrapper. Both fade components use the nearest solid surface color by default. `ScrollEdgeFades.attach(view)` returns a controller with `setHeights`, `setEdges`, `setColor`, and `detach`. Use `attachTree(root, surfaceColor)` for translucent panels such as a drawer. A second `attach` call returns the existing controller.
-
-## Pinned action bar and floating search
-
-`ToolbarLayout` pins its toolbar when the large header collapses. Once page content scrolls behind it, the actual navigation button and action menu become rounded control groups. Both groups use the same height; the navigation button is circular and the action group measures around its visible icons with equal icon widths and padding. The toolbar remains transparent. The compact page title appears when the header closes and leaves as the content scrolls; enable `setStickyTitleEnabled(true)` to keep it pinned. Screens can add actions through `getToolbar()` and configure the groups through `setStickyActionsEnabled`, `setStickyActionBlurEnabled`, `setStickyActionShadowElevation`, and `setStickyActionTintColor`. `getStickyToolbarControls()` also exposes icon width, group padding, action group corner radius, horizontal inset, collapse tolerance, and content scroll trigger options. A standalone `CoordinatorLayout` can use `StickyToolbarControls(appBar, toolbar, content)`, as the About screen does.
-
-`showSearchMode()` opens the 56dp bottom search pill above the navigation bar or keyboard. Its close button and Back clear the query and restore the page. `showSearchMode(initialQuery)` restores a query without sending a duplicate text callback. Screens own filtering through `setSearchModeListener`; use `getFloatingSearchBar()` to customize the hint, icons, animation timing, blur surface, and input field. Opening search hides the sticky bottom bar and footer, then restores them on close.
-
-```java
-ToolbarLayout layout = findViewById(R.id.toolbar_layout);
-layout.getToolbar().inflateMenu(R.menu.my_actions);
-layout.getFloatingSearchBar().setHint("Search items");
-layout.getFloatingSearchBar().setAnimationDurations(180, 130);
-layout.getStickyToolbarControls().setCornerRadius(
-        Math.round(28 * layout.getResources().getDisplayMetrics().density));
-layout.getStickyToolbarControls().setItemWidth(
-        Math.round(44 * layout.getResources().getDisplayMetrics().density));
-layout.setStickyActionBlurEnabled(true);
-```
-
-The sample's search action filters its page list as text changes. For application data, connect `SearchModeListener.onQueryTextChange` to the page's adapter and clear that filter when the callback receives an empty string.
-
-## Floating navigation
-
-`FloatingNavigationBar` is a reusable view for compact navigation. Add it over content in a `FrameLayout`, leaving a bottom content inset so the last row stays reachable. Its menu items provide stable IDs, icons, and accessible titles. Up to three destinations appear directly; a fourth slot opens a More grid for additional destinations. An optional circular end action remains independent of navigation selection. For outlined icons that fill when selected, call `setSelectedIcon(itemId, filledDrawable)` after inflating the menu. The sample Navigation page demonstrates this for Grid, List, Cards, and Settings.
-
-```xml
-<dev.oneuiproject.oneui.widget.FloatingNavigationBar
-    android:id="@+id/floating_nav"
-    android:layout_width="wrap_content"
-    android:layout_height="58dp"
-    android:layout_gravity="bottom|center_horizontal"
-    android:layout_margin="16dp"
-    app:navigationMenu="@menu/main_destinations"
-    app:showLabels="true"
-    app:blurEnabled="true"
-    app:actionIcon="@drawable/ic_add"
-    app:actionContentDescription="Add item" />
-```
-
-```java
-FloatingNavigationBar nav = findViewById(R.id.floating_nav);
-nav.setOnItemSelectedListener(itemId -> showDestination(itemId));
-nav.setAction(R.drawable.ic_add, "Add item", v -> addItem());
-// Optional: nav.setShowLabels(false); nav.setShowIcons(false);
-// nav.setBlurEnabled(false); nav.setAnimationsEnabled(false); nav.clearAction();
-// nav.setItemWidth(68dp); nav.setBarHeight(60dp); nav.setSelectedColor(color);
-// nav.setSelectedIcon(R.id.nav_grid, R.drawable.sample_nav_grid_filled);
-```
-
-To link actual pages, put them as direct children of `NavigationPageContainer`. Give each page the same ID as its menu item, then bind once:
-
-```java
-FloatingNavigationBar nav = findViewById(R.id.floating_nav);
-NavigationPageContainer pages = findViewById(R.id.pages);
-nav.bindPages(pages);
-nav.setPageSwipingEnabled(true); // Optional; false disables horizontal page swipes.
-```
-
-Place the page container and bar as siblings in a full-height `FrameLayout`, with the bar aligned to the bottom. Leave 88dp of bottom space in the page container so content stays reachable. A menu item without a matching page can be handled by `setOnItemSelectedListener`, as the sample does for its popup. The sample has gradient album tiles on Grid, icon rows on List, expandable cards on Cards, and controls on Settings. Press and page transitions follow `setAnimationsEnabled`. With blur enabled, the view samples content behind it; solid mode skips this work. Surfaces and selection colors come from the active palette, with the original light and dark resources as defaults. Samsung's [bottom navigation guidance](https://developer.samsung.com/one-ui/comp/bottom-navigation.html) describes the tab behavior and [bottom bar guidance](https://developer.samsung.com/one-ui/comp/bottom-bar.html) describes bottom actions.
-
-`IconRowView` powers both the plain List rows and expandable Cards rows. Set `setIconResource`, `setIconBackgroundColor`, `setIconTintColor`, `setTitle`, and `setSubtitle` for either style. Call `setExpandedText("Example text")` to add a chevron and expandable detail; omit it for a plain row. Cards disable automatic scroll edge fades with `ScrollEdgeFades.setAutoAttachEnabled(scrollView, false)`.
-
-`ImageTileView` is used by the Grid examples. Set its title and subtitle, then choose a gradient or an image source. The sample uses gradients with placeholder titles and random counts; it does not bundle photos.
-
-```java
-ImageTileView tile = new ImageTileView(context);
-tile.setTitle("My album");
-tile.setSubtitle("42 photos");
-tile.setGradientColors(0xFF8B97AF, 0xFF434B69); // Default visual without an image.
-tile.setImageUri(latestPhotoUri);                 // URI your app retrieved from MediaStore.
-// Or: tile.setImageUri(pickedPhotoUri);         // URI returned by the system photo picker.
-// Or: tile.setImagePath(localImagePath);        // Local path, file://, or content:// string.
-// Or: tile.setImageResource(R.drawable.my_photo);// Image packaged with your app.
-// tile.setImageUri(null);                       // Show the gradient again.
-```
-
-Pass a readable URI for the latest or picked photo; the app that chooses the photo also handles the required media access. The tile displays it with center cropping and keeps the gradient underneath as a fallback.
-
-For one to three destinations without an end action, the bar sizes itself to its items. Use `android:layout_gravity="bottom|center_horizontal"` inside a `FrameLayout` to center a compact bar. Four or more destinations use the fourth slot for More.
-
-## Sliders
-
-`OneUISlider` supports a thick rounded track, a palette-colored active segment, and a circular thumb filled with the current background color. It works from API 23, supports touch, keyboard and accessibility adjustments, and can show discrete steps, vertical orientation, haptic steps, and a warning threshold. The sample's stepped sliders have no fill.
-
-Set `sliderWarningValue` to mark the end of a slider with a light red warning segment. Crossing the threshold changes the active fill, thumb outline, and leading icon to the theme's error accent. `setWarningAreaColor` changes the warning segment color.
-
-`OneUIThickSlider` provides a larger volume or brightness control in horizontal or vertical form. Set `thickIcon`, `thickShowNumber`, `thickShowMenuButton`, and `thickWarningValue` independently. The menu button calls `setOnMenuClickListener`; the warning range colors the filled bar with the error accent and keeps the icon legible in white or black. The sample SeekBar page shows both orientations.
-
-`FloatingSearchBar.setCloseButtonVisible(false)` removes the exit action from a search field that stays on its page. Place `FloatingScrollToTopButton` after the scrolling view in a `FrameLayout`, then call `bind(recyclerView)`; its elevation keeps it above the page's scroll fade. Give it a larger bottom margin when a floating search bar is present. The Icons example uses an 88dp bottom margin.
+Declare `xmlns:app="http://schemas.android.com/apk/res-auto"` on the layout root. Library views use their full Java names in XML:
 
 ```xml
 <dev.oneuiproject.oneui.widget.OneUISlider
-    android:id="@+id/volume_slider"
+    android:id="@+id/volume"
     android:layout_width="match_parent"
     android:layout_height="48dp"
     android:contentDescription="Volume"
     app:minValue="0"
     app:maxValue="100"
     app:sliderValue="50"
-    app:leadingIcon="@drawable/ic_volume" />
-```
-
-Use `app:stepSize` with `app:showTicks="true"` for fixed levels and `app:sliderFillEnabled="false"` for a track without fill. `app:sliderVertical`, `app:sliderHapticEnabled`, and `app:sliderWarningValue` enable the other variants. `setOnValueChangeListener` reports the new value and whether it came from the user. Active, track, and thumb colors can be overridden per view in XML.
-
-`OneUISliderPreference` puts the same slider in a persistent preference row. Set a unique `android:key`, `android:defaultValue`, and the same `app:minValue`, `app:maxValue`, `app:stepSize`, `app:showTicks`, and `app:sliderFillEnabled` attributes used by the view. Preference change listeners can accept or reject user changes.
-
-The active segment uses the theme's `colorPrimary` by default. Use `app:sliderActiveColor` or `setActiveColor` to override it for one slider.
-
-## Floating toolbar
-
-`FloatingToolbar` displays up to five independent actions from an Android menu resource. Each visible item needs an ID and title; an icon is optional. The title remains the accessibility label when visual labels are hidden. Use `app:toolbarLightSurface` to choose the light or dark pill, `app:toolbarShowLabels` to control captions, and `setBlurEnabled` for a glass surface. `FloatingActionBar` is a two-command Cancel/Save bar with configurable labels and callbacks. Both use the same light/dark surface colors as navigation.
-
-```xml
-<dev.oneuiproject.oneui.widget.FloatingToolbar
-    android:id="@+id/selection_toolbar"
-    android:layout_width="match_parent"
-    android:layout_height="56dp"
-    app:toolbarMenu="@menu/selection_actions"
-    app:toolbarLightSurface="false" />
+    app:stepSize="10"
+    app:showTicks="true"
+    app:usesColorPalette="false" />
 ```
 
 ```java
-FloatingToolbar toolbar = findViewById(R.id.selection_toolbar);
-toolbar.setOnActionClickListener(actionId -> handleAction(actionId));
-toolbar.setBlurEnabled(true);
+OneUISlider volume = findViewById(R.id.volume);
+volume.setOnValueChangeListener((slider, value, fromUser) -> updateVolume(value));
 ```
 
-`FloatingBarSwitcher` keeps a navigation bar and one or more contextual bars in a single sticky bottom slot. Add the bars as direct children, call `setNavigationBar(nav)`, then `showBar(toolbar)` or `showNavigation()`. Set `setBackdropView(pageContainer)` when blurred bars should sample only the page behind them. `setAnimationsEnabled(false)` makes the swap immediate. The sample Toolbar page has a Toolbar tab and an Action bar tab, each with an open button. Samsung's [bottom bar guidance](https://developer.samsung.com/one-ui/comp/bottom-bar.html) recommends up to five bottom actions with icons and text; the floating presentation follows the supplied reference.
+For a continuous slider, omit `stepSize` and `showTicks`. `OneUIThickSlider` uses the `thick…` attributes, such as `thickValue`, `thickVertical` and `thickShowNumber`. Its light-mode track is gray. Explicit `sliderActiveColor`, `thickTrackColor`, and matching setters override the corresponding default color.
 
-When a page uses `ToolbarLayout` or `DrawerLayout`, call `setStickyBottomBar(bar)` after its view is created. This moves the bar into a fixed overlay above the scrolling page; call `setStickyBottomBar(null)` when leaving the page. The sample does this when switching between Navigation and Toolbar. `GlassSurfaceView` provides the shared rounded blur surface used by the collapsed app bar and floating drawer. The expanded app bar retains its flat presentation. The theme gives AppCompat alert dialogs a rounded translucent surface and uses Android window blur on API 31+; older versions retain the translucent surface.
+```xml
+<dev.oneuiproject.oneui.widget.FloatingNavigationBar
+    android:id="@+id/navigation"
+    android:layout_width="wrap_content"
+    android:layout_height="60dp"
+    app:navigationMenu="@menu/navigation"
+    app:showLabels="true"
+    app:blurEnabled="true" />
+```
 
-`BlurSettings` provides an app-wide override for glass surfaces, dialog backdrops, and progressive scroll fades. The sample exposes its `global_blur_enabled` key in Preferences. A component's own blur option still controls that component when the global setting is on. Call `BlurSettings.setEnabled(context, false)` to switch all blur off in code.
+```java
+navigation.bindPages(findViewById(R.id.pages)); // Page IDs match menu item IDs.
+navigation.setBackdropView(findViewById(R.id.pages));
+navigation.setOnItemSelectedListener(id -> onDestinationChanged(id));
+```
 
-`GridMenuDialog` keeps the page sharp and blurs its rounded menu card by default. Call `setCardBlurEnabled(false)` for a solid card; the app-wide blur setting still overrides the card.
+Navigation shows up to three direct destinations and a More button when there are four or more items. Its selection is white at 30% opacity in dark mode and solid white in light mode. More opens with a short upward slide and fade. See the [wiki recipes](docs/wiki.md#component-recipes) for menus, cards, thick sliders, search, toolbars and preferences.
 
-For a commented settings page built from the existing preference components, see [settings-page-example.md](docs/settings-page-example.md).
+## Colors and blur
 
-`FloatingSearchBar` can be embedded as a full search field with `setPersistent(true)`. Set its scroll source with `setSourceView`, supply a `Listener` for filtering or submission, and customize its hint, icons, and animation durations. The sample Widgets page uses the same class as the toolbar search overlay.
+**Use system color palette** is on by default and retains the device's native SESL/OS colors. Turning it off uses the saved custom palette, falling back to defaults for unset roles. It does not install an extra wallpaper-color overlay. The previous material switch's off appearance is preserved as the new system-enabled behavior.
 
-## Android 17 / One UI modernization plan
+Each component defaults to `app:usesColorPalette="true"`. Set it to `false` to use custom colors even while the global system setting is on. In Java, call `OneUIPalette.setUsesColorPalette(view, false)`. Programmatic standard controls can be constructed with `OneUIPalette.wrap(context, null)`.
 
-The build uses Gradle 9.5.1, Android Gradle Plugin 9.3, and `compileSdk` 36. The sample targets API 33 and the project still uses older SESL dependencies. `ui9-v1.0` identifies the first migration release and does **not** claim that the whole library has been migrated yet.
+| Role | Custom default / purpose |
+| --- | --- |
+| Background | Pure black in dark mode, `#F6F6F6` in light mode; page/window background |
+| Surface | `#171717` dark, white light; cards and content groups |
+| Primary | Active controls, checked toggle track and slider fill |
+| Secondary | Secondary accent and secondary progress; independent of secondary text |
+| Foreground | Main text and icons |
+| Surface variant | Secondary surfaces and navigation base |
+| Outline | Inactive controls and slider tracks |
+| Error | Warning/error accents |
 
-1. Review available SESL releases and upgrade dependencies together, checking API compatibility. Keep `minSdk 23` until a dependency or feature forces a change; gate new platform APIs by SDK level. The legacy picker artifacts share a namespace and currently require the `android.uniquePackageNames=false` migration setting.
-2. Install the Android 17 SDK and raise `compileSdk` to 37. Update the sample's `targetSdk` separately after testing Android 15+ edge-to-edge, window insets, predictive back, permissions, and Android 17 behavior changes.
-3. Audit theme colors, typography, spacing, shapes, iconography, motion, dark mode, contrast, and touch targets against the current [Samsung One UI guidance](https://developer.samsung.com/one-ui/index.html). Remove reliance on undocumented Samsung internals where possible so non-Samsung devices remain supported.
-4. Make layouts adaptive for tablets, foldables, landscape, split screen, and large font sizes. Add device and API-level visual checks, especially API 23, 31, 35, and 37.
-5. Update publishing coordinates, README links, release artifacts, changelog, sample screens, and documentation for this fork before publishing a release.
+Toggle thumbs use Background. Tracks are 24 dp tall with an 18 dp thumb; the ON/OFF preference uses the same toggle and standard row sizing. Cards use Surface independently of Background. Saved values matching the previous defaults migrate to these corrected defaults; other custom colors are retained. Light cards have a subtle default shadow; `surfaceShadowEnabled` and `surfaceShadowElevation` remain available per card. Navigation's neutral selection is independent of Primary. Chrome icons and labels use Foreground, and subtitles use `OneUIPalette.secondaryText(context)` rather than the Secondary accent. Native Preferences rows use `PalettePreferenceGroupAdapter` to retain Surface after recycling.
 
-Candidate library components: edge-to-edge and inset-aware screen scaffolds; adaptive navigation and responsive panes; current One UI color and typography tokens; bottom action bars and sheets; updated search and list patterns; accessible loading, empty, and error states; motion and haptic helpers; and a foldable-aware layout helper. These are proposals for implementation and visual review, not existing APIs.
+```java
+MaterialColorSettings.setEnabled(context, false);
+OneUIPalette.set(context, OneUIPalette.PRIMARY, true, 0xff438aff); // dark palette
+int surface = OneUIPalette.get(context, OneUIPalette.SURFACE);
+OneUIPalette.reset(context, true); // reset dark mode only
+BlurSettings.setEnabled(context, true);
+```
 
-# More info
-- [One UI 4](https://design.samsung.com/global/contents/one-ui-4/)
-- [One UI Design Guide](https://developer.samsung.com/one-ui/index.html)
-- [One UI Design Guide (PDF)](https://design.samsung.com/global/contents/one-ui/download/oneui_design_guide_eng.pdf)
+Preferences exposes continuous **Blur intensity** (0–40 dp, default 18) and stepped **Glass opacity** (0–100%, steps of 5, default 65%). The keys are `global_blur_intensity` and `global_blur_alpha`; `global_blur_enabled` controls the global switch. Modern toolbar/drawer surfaces use GPU blur; older versions use cached downsampled captures. Scroll edge fades are themed gradients drawn in the stationary parent overlay, so they stay pinned during fast flings. Dialog action labels use Foreground and dialog surfaces use shared blur/opacity settings. API support and implementation limits are detailed in the [palette guide](docs/color-palette-and-blur.md).
 
-# Special thanks
-- [Google](https://developer.android.com/jetpack) for their Jetpack and Material Components libraries.
-- [Samsung](https://www.samsung.com/) for their awesome OneUI Design. :)
-- All the current and future [contributors](https://github.com/OneUIProject/oneui-design/graphs/contributors) and issue reporters. :D
+## Repository map and checks
+
+| Location | Contents |
+| --- | --- |
+| `lib/src/main/java/dev/oneuiproject/oneui` | Public layouts, widgets, dialogs, preferences and utilities |
+| `lib/src/main/res` | Themes, colors, drawables and XML attributes |
+| `sample-app/src/main` | Component demos and app appearance settings |
+| `sample-app/src/androidTest` | Device component behavior and rendering checks |
+| `docs/wiki.md` | Current behavior contract, usage recipes and maintenance notes |
+| `docs/one-ui-9-habit-app-rulebook.md` | Separate design research and proposed habit-app guidance |
+
+```shell
+./gradlew :sample-app:assembleDebug :sample-app:assembleDebugAndroidTest
+adb install -r sample-app/build/outputs/apk/debug/sample-app-debug.apk
+adb install -r sample-app/build/outputs/apk/androidTest/debug/sample-app-debug-androidTest.apk
+adb shell am instrument -w com.sec.sesl.tester.test/dev.oneuiproject.oneui.widget.ComponentBehaviorChecks
+./gradlew :lib:lintDebug
+```
+
+The instrumentation runner restores appearance preferences after checking control colors, light/dark rendering, toggle geometry, toolbar stability, navigation sizing, blur caching and recreation. Lint currently reports legacy issues, including API-level and restricted SESL API usage; a successful APK build is not a claim that lint is clean. Use a Samsung device for final OEM hover/blur verification as well as an emulator.
+
+Formatting defaults are defined in [.editorconfig](.editorconfig); [.gitattributes](.gitattributes) keeps source line endings consistent. Build outputs remain ignored. Do not commit local SDK paths, generated captures or signing credentials.
+
+## Credits and license
+
+[MIT license](LICENSE). Thanks to the original OneUIProject contributors, Samsung for One UI, and Google for Android, Jetpack and Material Components. See [upstream documentation](https://oneuiproject.github.io/design/) for the original APIs; this fork's current behavior is documented locally above.

@@ -22,7 +22,7 @@
                 <dev.oneuiproject.oneui.widget.RoundLinearLayout
             android:layout_marginHorizontal="16dp"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:background="@color/oui_background_color" android:tag="oneui.palette.background" android:orientation="vertical"
+                    android:background="@color/oui_surface_color" android:tag="oneui.palette.surface" android:orientation="vertical"
                     android:paddingHorizontal="24dp" android:paddingVertical="12dp">
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/nav_toggle_blur" android:layout_width="match_parent"
@@ -47,7 +47,7 @@
                     android:text="How navigation works" />
                 <dev.oneuiproject.oneui.widget.RoundLinearLayout
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="16dp" android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+                    android:layout_marginHorizontal="16dp" android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
                     android:orientation="vertical" android:padding="20dp">
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:text="Each destination is linked to a page with the same ID. Tap the sticky bar or swipe horizontally to change pages. When there are more than five destinations, More opens the remaining pages in a grid. The optional search button sits outside the destination pill."

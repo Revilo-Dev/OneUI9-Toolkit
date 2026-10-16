@@ -6,7 +6,7 @@
     <color name="oui_floating_nav_surface">#FFFFFFFF</color>
     <color name="oui_floating_nav_glass">#F4FFFFFF</color>
     <color name="oui_search_glass">#C8FFFFFF</color>
-    <color name="oui_floating_nav_selected">#33000000</color>
+    <color name="oui_floating_nav_selected">#FFFFFFFF</color>
     <color name="oui_floating_nav_press">#33000000</color>
     <color name="oui_floating_nav_primary">#FF17151A</color>
     <color name="oui_floating_nav_secondary">#FF666169</color>
@@ -19,7 +19,7 @@
     <color name="oui_floating_toolbar_light_text">#FF17151A</color>
     <color name="oui_floating_toolbar_dark_text">#FFF9F7FA</color>
 
-    <color name="oui_round_and_bgcolor">@color/sesl_round_and_bgcolor_light</color>
+    <color name="oui_round_and_bgcolor">#FFF6F6F6</color>
     <color name="oui_background_color">@color/sesl_background_color_light</color>
     <color name="oui_primary_text_color">#ff010101</color>
     <color name="oui_primary_icon_color">@color/oui_primary_text_color</color>
@@ -91,4 +91,5 @@
     <color name="sem_tip_popup_text_color">#fffafafa</color>
     <color name="sem_tip_popup_text_color_translucent">#fffafafa</color>
 
+    <color name="oui_surface_color">#FFFFFFFF</color>
 </resources>

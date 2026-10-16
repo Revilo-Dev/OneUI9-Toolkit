@@ -2,6 +2,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="OneUITheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:colorBackground">@color/oui_round_and_bgcolor</item>
+        <item name="android:colorBackgroundFloating">@color/oui_surface_color</item>
+        <item name="colorSurface">@color/oui_surface_color</item>
         <item name="alertDialogTheme">@style/OneUIGlassDialogTheme</item>
         <item name="android:alertDialogTheme">@style/OneUIGlassDialogTheme</item>
         <item name="android:listChoiceBackgroundIndicator">?attr/listChoiceBackgroundIndicator</item>

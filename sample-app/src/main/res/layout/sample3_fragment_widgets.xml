@@ -40,7 +40,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
             android:orientation="vertical"
             android:paddingHorizontal="24dp"
             android:paddingVertical="12dp">
@@ -89,7 +89,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
             android:gravity="center"
             android:orientation="vertical"
             android:paddingHorizontal="24dp"
@@ -156,7 +156,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
             android:paddingHorizontal="16dp"
             android:paddingVertical="8dp">
 
@@ -176,7 +176,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:background="@color/oui_background_color" android:tag="oneui.palette.background"
+            android:background="@color/oui_surface_color" android:tag="oneui.palette.surface"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
             android:paddingVertical="12dp">

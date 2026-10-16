@@ -84,7 +84,10 @@ public class DrawerListAdapter extends RecyclerView.Adapter<DrawerListViewHolder
     }
 
     public void setSelectedItem(int position) {
+        if (mSelectedPos == position) return;
+        int previous = mSelectedPos;
         mSelectedPos = position;
-        notifyItemRangeChanged(0, getItemCount());
+        notifyItemChanged(previous);
+        notifyItemChanged(position);
     }
 }

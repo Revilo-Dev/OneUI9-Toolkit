@@ -88,7 +88,7 @@ public class AppInfoLayout extends ToolbarLayout {
     private SeslProgressBar mProgressBar;
 
     public AppInfoLayout(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         setNavigationButtonAsBack();
         if (!isInEditMode()) {
             mActivity.setSupportActionBar(null);

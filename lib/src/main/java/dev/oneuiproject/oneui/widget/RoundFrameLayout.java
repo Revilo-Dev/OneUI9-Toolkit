@@ -42,9 +42,9 @@ public class RoundFrameLayout extends FrameLayout {
 
     public RoundFrameLayout(@NonNull Context context, @Nullable AttributeSet attrs,
                             int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr, defStyleRes);
 
-        mContext = context;
+        mContext = getContext();
 
         TypedArray a = mContext.obtainStyledAttributes(attrs, R.styleable.RoundFrameLayout);
         final int roundedCorners = a.getInt(R.styleable.RoundFrameLayout_roundedCorners,
@@ -53,14 +53,14 @@ public class RoundFrameLayout extends FrameLayout {
         surfaceShadowEnabled = a.getBoolean(R.styleable.RoundFrameLayout_surfaceShadowEnabled,
                 getBackground() != null);
         surfaceShadowElevation = a.getDimension(R.styleable.RoundFrameLayout_surfaceShadowElevation,
-                2 * getResources().getDisplayMetrics().density);
+                .5f * getResources().getDisplayMetrics().density);
         a.recycle();
 
         mRoundedCorner = new SeslRoundedCorner(mContext);
         TypedValue typedValue = new TypedValue();
-        context.getTheme().resolveAttribute(R.attr.roundedCornerColor, typedValue, true);
+        getContext().getTheme().resolveAttribute(R.attr.roundedCornerColor, typedValue, true);
         if (typedValue.resourceId > 0) {
-            mRoundedCornerColor = context.getResources().getColor(typedValue.resourceId, context.getTheme());
+            mRoundedCornerColor = getContext().getResources().getColor(typedValue.resourceId, getContext().getTheme());
         }
 
         if (mRoundedCornerColor != -1 && roundedCorners != SeslRoundedCorner.ROUNDED_CORNER_NONE){

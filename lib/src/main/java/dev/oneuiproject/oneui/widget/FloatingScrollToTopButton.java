@@ -25,7 +25,7 @@ public class FloatingScrollToTopButton extends FrameLayout {
 
     public FloatingScrollToTopButton(Context context) { this(context, null); }
     public FloatingScrollToTopButton(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         setVisibility(GONE);
         setElevation(dp(16));
         setClickable(true);
@@ -33,12 +33,12 @@ public class FloatingScrollToTopButton extends FrameLayout {
         setContentDescription("Scroll to top");
         GradientDrawable background = new GradientDrawable();
         background.setShape(GradientDrawable.OVAL);
-        background.setColor(OneUIPalette.color(context, R.color.oui_floating_nav_surface));
+        background.setColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface));
         setBackground(background);
-        ImageView icon = new ImageView(context);
+        ImageView icon = new ImageView(getContext());
         icon.setImageResource(R.drawable.oui_ic_scroll_top);
         icon.setImageTintList(ColorStateList.valueOf(
-                OneUIPalette.color(context, R.color.oui_primary_text_color)));
+                OneUIPalette.color(getContext(), R.color.oui_primary_text_color)));
         addView(icon, new LayoutParams(dp(24), dp(24), Gravity.CENTER));
         setOnClickListener(v -> {
             if (list != null) list.smoothScrollToPosition(0);

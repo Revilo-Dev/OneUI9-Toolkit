@@ -41,17 +41,17 @@ public class RelatedCard extends FrameLayout {
 
     public RelatedCard(@NonNull Context context, @Nullable AttributeSet attrs,
                             int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr, defStyleRes);
         setClipChildren(false);
 
-        LayoutInflater inflater = (LayoutInflater) context
+        LayoutInflater inflater = (LayoutInflater) getContext()
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         inflater.inflate(R.layout.oui_view_relative_link, this, true);
         mSurface = getChildAt(0);
-        shadowElevation = 2 * getResources().getDisplayMetrics().density;
+        shadowElevation = .5f * getResources().getDisplayMetrics().density;
         updateShadow();
 
-        TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.RelatedCard,
+        TypedArray a = getContext().getTheme().obtainStyledAttributes(attrs, R.styleable.RelatedCard,
                 0, 0);
         try {
             mTitle = a.getString(R.styleable.RelatedCard_title);

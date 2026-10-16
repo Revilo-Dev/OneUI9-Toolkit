@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.layout;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -25,7 +27,7 @@ public class SwitchBarLayout extends ToolbarLayout {
     private FrameLayout mSBLContainer;
 
     public SwitchBarLayout(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
 
         LayoutInflater.from(mContext)
                 .inflate(R.layout.oui_layout_switchbarlayout, mMainContainer, true);

@@ -33,6 +33,8 @@ public class OneUIThickSlider extends View {
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF track = new RectF();
+    private final Path trackPath = new Path();
+    private final RectF backdropBounds = new RectF();
     private static boolean capturingAnyBackdrop;
     private Bitmap backdrop;
     private int[] pixels;
@@ -51,19 +53,20 @@ public class OneUIThickSlider extends View {
     private int trackColor;
     private int warningAreaColor;
     private int errorColor;
+    private boolean customActive, customTrack, customError;
     private Drawable icon;
     private Runnable menuClickListener;
     private OnValueChangeListener valueListener;
 
     public OneUIThickSlider(Context context) { this(context, null); }
     public OneUIThickSlider(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
-        activeColor = OneUIPalette.get(context, OneUIPalette.PRIMARY);
-        trackColor = OneUIPalette.color(context, R.color.oui_slider_track_color);
-        warningAreaColor = OneUIPalette.color(context, R.color.oui_slider_warning_area_color);
-        errorColor = OneUIPalette.color(context, R.color.oui_functional_red_color);
+        super(OneUIPalette.wrap(context, attrs), attrs);
+        activeColor = OneUIPalette.get(getContext(), OneUIPalette.PRIMARY);
+        trackColor = OneUIPalette.color(getContext(), R.color.oui_slider_track_color);
+        warningAreaColor = OneUIPalette.color(getContext(), R.color.oui_slider_warning_area_color);
+        errorColor = OneUIPalette.color(getContext(), R.color.oui_functional_red_color);
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.OneUIThickSlider);
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.OneUIThickSlider);
             vertical = a.getBoolean(R.styleable.OneUIThickSlider_thickVertical, false);
             minValue = a.getInt(R.styleable.OneUIThickSlider_thickMinValue, 0);
             maxValue = Math.max(minValue + 1,
@@ -75,6 +78,8 @@ public class OneUIThickSlider extends View {
             showMenuButton = a.getBoolean(R.styleable.OneUIThickSlider_thickShowMenuButton, false);
             activeColor = a.getColor(R.styleable.OneUIThickSlider_thickActiveColor, activeColor);
             trackColor = a.getColor(R.styleable.OneUIThickSlider_thickTrackColor, trackColor);
+            customActive = a.hasValue(R.styleable.OneUIThickSlider_thickActiveColor);
+            customTrack = a.hasValue(R.styleable.OneUIThickSlider_thickTrackColor);
             a.recycle();
         }
         value = clamp(value);
@@ -82,6 +87,12 @@ public class OneUIThickSlider extends View {
         setClickable(true);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
         BlurSettings.observe(this);
+        OneUIPalette.observe(this, () -> {
+            if (!customActive) activeColor = OneUIPalette.get(getContext(), OneUIPalette.PRIMARY);
+            if (!customTrack) trackColor = OneUIPalette.get(getContext(), OneUIPalette.OUTLINE);
+            if (!customError) errorColor = OneUIPalette.get(getContext(), OneUIPalette.ERROR);
+            invalidate();
+        });
     }
 
     public void setVertical(boolean enabled) { vertical = enabled; requestLayout(); invalidate(); }
@@ -94,12 +105,12 @@ public class OneUIThickSlider extends View {
     public void setValue(int next) { updateValue(next, false); }
     public void setWarningValue(int threshold) { warningValue = threshold; invalidate(); }
     public void setWarningAreaColor(int color) { warningAreaColor = color; invalidate(); }
-    public void setErrorColor(int color) { errorColor = color; invalidate(); }
-    public void setActiveColor(int color) { activeColor = color; invalidate(); }
-    public void setTrackColor(int color) { trackColor = color; invalidate(); }
+    public void setErrorColor(int color) { customError = true; errorColor = color; invalidate(); }
+    public void setActiveColor(int color) { customActive = true; activeColor = color; invalidate(); }
+    public void setTrackColor(int color) { customTrack = true; trackColor = color; invalidate(); }
     public void setIcon(@Nullable Drawable drawable) { icon = drawable; invalidate(); }
     public void setIconResource(@DrawableRes int resourceId) {
-        setIcon(resourceId == 0 ? null : getContext().getDrawable(resourceId));
+        setIcon(resourceId == 0 ? null : androidx.core.content.ContextCompat.getDrawable(getContext(), resourceId));
     }
     public void setShowNumber(boolean show) { showNumber = show; invalidate(); }
     public void setShowMenuButton(boolean show) { showMenuButton = show; invalidate(); }
@@ -149,14 +160,17 @@ public class OneUIThickSlider extends View {
                 getHeight() - getPaddingBottom() - inset);
         if (track.width() <= 0 || track.height() <= 0) return;
         float radius = Math.min(track.width(), track.height()) / 2f;
-        boolean blur = BlurSettings.isEnabled(getContext()) && !isInEditMode();
+        boolean blur = OneUIPalette.isDark(getContext()) && !customTrack
+                && BlurSettings.isEnabled(getContext()) && BlurSettings.getIntensity(getContext()) > 0
+                && !isInEditMode();
         if (blur && !capturingAnyBackdrop) captureBackdrop();
         int backgroundSave = canvas.save();
         canvas.clipPath(roundedTrackPath(radius));
         if (blur && backdrop != null) {
             paint.setColor(Color.WHITE);
             paint.setFilterBitmap(true);
-            canvas.drawBitmap(backdrop, null, new RectF(0, 0, getWidth(), getHeight()), paint);
+            backdropBounds.set(0, 0, getWidth(), getHeight());
+            canvas.drawBitmap(backdrop, null, backdropBounds, paint);
             paint.setFilterBitmap(false);
             paint.setColor(0x18FFFFFF);
         } else {
@@ -194,7 +208,7 @@ public class OneUIThickSlider extends View {
 
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(dp(0.5f));
-        paint.setColor(0x80FFFFFF);
+        paint.setColor(OneUIPalette.isDark(getContext()) ? 0x40FFFFFF : Color.TRANSPARENT);
         canvas.drawRoundRect(track, radius, radius, paint);
         paint.setStyle(Paint.Style.FILL);
 
@@ -261,28 +275,14 @@ public class OneUIThickSlider extends View {
             capturingBackdrop = false;
             capturingAnyBackdrop = false;
         }
-        backdrop.getPixels(pixels, 0, width, 0, 0, width, height);
-        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-            int a = 0, r = 0, g = 0, b = 0;
-            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
-                int color = pixels[Math.max(0, Math.min(height - 1, y + dy)) * width
-                        + Math.max(0, Math.min(width - 1, x + dx))];
-                a += color >>> 24;
-                r += color >> 16 & 255;
-                g += color >> 8 & 255;
-                b += color & 255;
-            }
-            blurredPixels[y * width + x] = (a / 9 << 24) | (r / 9 << 16)
-                    | (g / 9 << 8) | b / 9;
-        }
-        backdrop.setPixels(blurredPixels, 0, width, 0, 0, width, height);
+        BackdropBlur.apply(backdrop, pixels, blurredPixels, BlurSettings.sampleRadius(getContext(), scale));
         lastBackdropCapture = SystemClock.uptimeMillis();
     }
 
-    private android.graphics.Path roundedTrackPath(float radius) {
-        android.graphics.Path path = new android.graphics.Path();
-        path.addRoundRect(track, radius, radius, android.graphics.Path.Direction.CW);
-        return path;
+    private Path roundedTrackPath(float radius) {
+        trackPath.reset();
+        trackPath.addRoundRect(track, radius, radius, Path.Direction.CW);
+        return trackPath;
     }
 
     private int contrastColor(int background) {

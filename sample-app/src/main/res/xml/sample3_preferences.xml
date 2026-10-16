@@ -32,10 +32,27 @@
             android:defaultValue="true" />
 
         <SwitchPreferenceCompat
-            android:key="global_material_color_palette"
-            android:title="Use material color palette"
-            android:summary="Use your wallpaper colors for controls across the app"
-            android:defaultValue="false" />
+            android:key="global_use_color_palette"
+            android:title="Use system color palette"
+            android:summary="Use your device theme colors. Turn off to use the custom colors below."
+            android:defaultValue="true" />
+
+        <dev.oneuiproject.oneui.preference.OneUISliderPreference
+            android:key="global_blur_intensity"
+            android:title="Blur intensity"
+            android:summary="Adjust how soft the live background appears"
+            android:dependency="global_blur_enabled"
+            app:minValue="0" app:maxValue="40"
+            android:defaultValue="18" />
+
+        <dev.oneuiproject.oneui.preference.OneUISliderPreference
+            android:key="global_blur_alpha"
+            android:title="Glass opacity"
+            android:summary="Adjust surface opacity in 5% steps"
+            android:dependency="global_blur_enabled"
+            app:minValue="0" app:maxValue="100" app:stepSize="5"
+            app:showTicks="true"
+            android:defaultValue="65" />
 
     </PreferenceCategory>
 

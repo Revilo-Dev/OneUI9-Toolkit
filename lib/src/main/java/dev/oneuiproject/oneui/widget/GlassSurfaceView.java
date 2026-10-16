@@ -16,6 +16,7 @@ import android.view.ViewOutlineProvider;
 import android.graphics.Outline;
 import android.view.PixelCopy;
 import android.view.Window;
+import android.view.ViewTreeObserver;
 
 import androidx.annotation.Nullable;
 
@@ -35,17 +36,40 @@ public class GlassSurfaceView extends View {
     private boolean blurEnabled = true;
     private Integer tintColor;
     private boolean capturePending;
-    private boolean captureFailed;
+    private boolean captureDirty = true;
     private int captureGeneration;
     private long lastCaptureTime;
+    private final BackdropRenderNode hardwareBackdrop = new BackdropRenderNode();
+    private final Rect backdropBounds = new Rect();
+    private ViewTreeObserver hostObserver, sourceObserver;
+    private final int[] position = new int[2];
+    private int lastX = Integer.MIN_VALUE, lastY = Integer.MIN_VALUE;
+    private int lastWidth, lastHeight;
+    private final Runnable pendingRefresh = this::invalidate;
+    private final ViewTreeObserver.OnScrollChangedListener scrollChanged = () -> {
+        if (isShown()) refreshCapture();
+    };
+    private final ViewTreeObserver.OnPreDrawListener preDraw = () -> {
+        if (!isShown() || !blurEnabled || !BlurSettings.isEnabled(getContext())) return true;
+        View backdrop = observedSource();
+        getLocationOnScreen(position);
+        boolean moved = lastX != position[0] || lastY != position[1]
+                || lastWidth != getWidth() || lastHeight != getHeight();
+        lastX = position[0]; lastY = position[1];
+        lastWidth = getWidth(); lastHeight = getHeight();
+        // A sibling's dirty state reflects actual backdrop updates. An ancestor also
+        // becomes dirty when this surface redraws, so observing it would feed back forever.
+        if (moved || (backdrop != null && !isAncestor(backdrop) && backdrop.isDirty())) refreshCapture();
+        return true;
+    };
 
     public GlassSurfaceView(Context context) { this(context, null); }
     public GlassSurfaceView(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         radius = dp(28);
         setWillNotDraw(false);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-        BlurSettings.observe(this);
+        BlurSettings.observe(this, this::refreshCapture);
         setOutlineProvider(new ViewOutlineProvider() {
             @Override public void getOutline(View view, Outline outline) {
                 outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
@@ -53,14 +77,15 @@ public class GlassSurfaceView extends View {
         });
     }
 
-    public void setSourceView(@Nullable View view) { source = view; invalidate(); }
+    public void setSourceView(@Nullable View view) {
+        source = view;
+        observeBackdrop();
+        refreshCapture();
+    }
 
     /** Requests a fresh window sample; useful when content moves behind a floating bar. */
     public void refreshCapture() {
-        if (captureWindow == null) { invalidate(); return; }
-        if (capturePending || SystemClock.uptimeMillis() - lastCaptureTime < 60) return;
-        if (bitmap != null) { bitmap.recycle(); bitmap = null; }
-        captureFailed = false;
+        captureDirty = true;
         invalidate();
     }
 
@@ -69,8 +94,8 @@ public class GlassSurfaceView extends View {
         captureWindow = window;
         captureGeneration++;
         capturePending = false;
-        captureFailed = false;
-        if (bitmap != null) { bitmap.recycle(); bitmap = null; }
+        captureDirty = true;
+        observeBackdrop();
         invalidate();
     }
     public void setCornerRadius(float pixels) {
@@ -82,7 +107,7 @@ public class GlassSurfaceView extends View {
     /** Lower values keep more detail in the frosted background. */
     public void setBlurSampleScale(int scale) {
         sampleScale = Math.max(2, scale);
-        if (bitmap != null) { bitmap.recycle(); bitmap = null; }
+        captureDirty = true;
         invalidate();
     }
     public void setTintColor(@Nullable Integer color) { tintColor = color; invalidate(); }
@@ -95,28 +120,42 @@ public class GlassSurfaceView extends View {
         int save = canvas.save();
         canvas.clipPath(clip);
         boolean effectiveBlur = blurEnabled && BlurSettings.isEnabled(getContext());
-        if (effectiveBlur && !isInEditMode()) {
-            if (captureWindow != null) {
+        if (effectiveBlur && BlurSettings.getIntensity(getContext()) > 0 && !isInEditMode()) {
+            backdropBounds.set(0, 0, getWidth(), getHeight());
+            boolean hardware = hardwareBackdrop.draw(canvas, this, source, backdropBounds, captureDirty);
+            if (hardware) {
+                captureDirty = false;
+                lastCaptureTime = SystemClock.uptimeMillis();
+            } else if (captureWindow != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 requestWindowCapture();
-            } else if (source != null && source != this) {
+            } else if (source != null && source != this
+                    && captureDirty && SystemClock.uptimeMillis() - lastCaptureTime >= 32) {
                 capture();
-            }
-            if (bitmap != null) {
+                captureDirty = false;
+                lastCaptureTime = SystemClock.uptimeMillis();
+            } else if (source == null) captureDirty = false;
+            if (!hardware && bitmap != null) {
                 paint.setColor(android.graphics.Color.WHITE);
                 canvas.drawBitmap(bitmap, null, new Rect(0, 0, getWidth(), getHeight()), paint);
             }
         }
-        paint.setColor(effectiveBlur && bitmap != null && tintColor != null
-                ? tintColor : OneUIPalette.color(getContext(),
-                        effectiveBlur && bitmap != null ? R.color.oui_glass_surface
-                                : R.color.oui_floating_nav_surface));
+        int tint = effectiveBlur && tintColor != null ? tintColor
+                : OneUIPalette.color(getContext(), effectiveBlur ? R.color.oui_glass_surface
+                        : R.color.oui_floating_nav_surface);
+        paint.setColor(effectiveBlur ? BlurSettings.tint(getContext(), tint) : tint);
         canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
         canvas.restoreToCount(save);
+        // At most one pending redraw for a dirty backdrop; an idle surface does no work.
+        if (effectiveBlur && captureDirty && !capturePending && isShown()
+                && BlurSettings.getIntensity(getContext()) > 0 && observedSource() != null) {
+            removeCallbacks(pendingRefresh);
+            postDelayed(pendingRefresh, 32);
+        }
     }
 
     private void requestWindowCapture() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || capturePending
-                || captureFailed || bitmap != null)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || capturePending || !captureDirty
+                || SystemClock.uptimeMillis() - lastCaptureTime < 32)
             return;
         View decor = captureWindow.getDecorView();
         if (!decor.isAttachedToWindow()) return;
@@ -139,18 +178,22 @@ public class GlassSurfaceView extends View {
                 }
                 capturePending = false;
                 if (result == PixelCopy.SUCCESS) {
+                    blurBitmap(sample);
+                    Bitmap previous = bitmap;
                     bitmap = sample;
-                    blurBitmap(bitmap);
+                    if (previous != null) previous.recycle();
+                    captureDirty = false;
                     lastCaptureTime = SystemClock.uptimeMillis();
                 } else {
                     sample.recycle();
-                    captureFailed = true;
+                    lastCaptureTime = SystemClock.uptimeMillis();
+                    captureDirty = false;
                 }
                 invalidate();
             }, new Handler(Looper.getMainLooper()));
         } catch (IllegalArgumentException error) {
             capturePending = false;
-            captureFailed = true;
+            captureDirty = false;
             sample.recycle();
         }
     }
@@ -158,23 +201,11 @@ public class GlassSurfaceView extends View {
     private void blurBitmap(Bitmap sample) {
         int width = sample.getWidth();
         int height = sample.getHeight();
-        pixels = new int[width * height];
-        blurred = new int[width * height];
-        sample.getPixels(pixels, 0, width, 0, 0, width, height);
-        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-            int a = 0, r = 0, g = 0, b = 0;
-            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
-                int color = pixels[Math.max(0, Math.min(height - 1, y + dy)) * width
-                        + Math.max(0, Math.min(width - 1, x + dx))];
-                a += color >>> 24;
-                r += color >> 16 & 255;
-                g += color >> 8 & 255;
-                b += color & 255;
-            }
-            blurred[y * width + x] = (a / 9 << 24) | (r / 9 << 16)
-                    | (g / 9 << 8) | b / 9;
+        if (pixels == null || pixels.length != width * height) {
+            pixels = new int[width * height];
+            blurred = new int[width * height];
         }
-        sample.setPixels(blurred, 0, width, 0, 0, width, height);
+        BackdropBlur.apply(sample, pixels, blurred, BlurSettings.sampleRadius(getContext(), sampleScale));
     }
 
     private void capture() {
@@ -202,28 +233,58 @@ public class GlassSurfaceView extends View {
             bitmap = null;
             return;
         }
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
-        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-            int a = 0, r = 0, g = 0, b = 0;
-            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
-                int color = pixels[Math.max(0, Math.min(height - 1, y + dy)) * width
-                        + Math.max(0, Math.min(width - 1, x + dx))];
-                a += color >>> 24;
-                r += color >> 16 & 255;
-                g += color >> 8 & 255;
-                b += color & 255;
-            }
-            blurred[y * width + x] = (a / 9 << 24) | (r / 9 << 16)
-                    | (g / 9 << 8) | b / 9;
-        }
-        bitmap.setPixels(blurred, 0, width, 0, 0, width, height);
+        blurBitmap(bitmap);
     }
 
     @Override protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        stopObserving();
+        hardwareBackdrop.release();
+        removeCallbacks(pendingRefresh);
         captureGeneration++;
         capturePending = false;
         if (bitmap != null) { bitmap.recycle(); bitmap = null; }
+    }
+
+    @Override protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        observeBackdrop();
+        refreshCapture();
+    }
+
+    private View observedSource() {
+        return source != null ? source : captureWindow != null ? captureWindow.getDecorView() : null;
+    }
+
+    private boolean isAncestor(View candidate) {
+        android.view.ViewParent parent = getParent();
+        while (parent instanceof View) {
+            if (parent == candidate) return true;
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
+    private void observeBackdrop() {
+        stopObserving();
+        if (!isAttachedToWindow()) return;
+        hostObserver = getViewTreeObserver();
+        hostObserver.addOnPreDrawListener(preDraw);
+        View backdrop = observedSource();
+        if (backdrop != null && backdrop.isAttachedToWindow()) {
+            sourceObserver = backdrop.getViewTreeObserver();
+            sourceObserver.addOnScrollChangedListener(scrollChanged);
+            if (sourceObserver != hostObserver) sourceObserver.addOnPreDrawListener(preDraw);
+        }
+    }
+
+    private void stopObserving() {
+        if (hostObserver != null && hostObserver.isAlive()) hostObserver.removeOnPreDrawListener(preDraw);
+        if (sourceObserver != null && sourceObserver.isAlive()) {
+            sourceObserver.removeOnScrollChangedListener(scrollChanged);
+            if (sourceObserver != hostObserver) sourceObserver.removeOnPreDrawListener(preDraw);
+        }
+        hostObserver = sourceObserver = null;
     }
 
     private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }

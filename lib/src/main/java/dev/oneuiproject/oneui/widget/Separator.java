@@ -1,9 +1,7 @@
 package dev.oneuiproject.oneui.widget;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.util.AttributeSet;
-import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,17 +25,15 @@ public class Separator extends TextView {
 
     public Separator(@NonNull Context context, @Nullable AttributeSet attrs,
                        int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr, defStyleRes);
     }
 
     @Override
-    public void dispatchDraw(Canvas c) {
-        super.dispatchDraw(c);
-
-        LayoutParams lp = getLayoutParams();
-        lp.height = getText().length() != 0 ?
-                LayoutParams.WRAP_CONTENT
-                : getResources().getDimensionPixelSize(R.dimen.sesl_list_subheader_min_height);
-        setLayoutParams(lp);
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (getText().length() == 0) {
+            int height = getResources().getDimensionPixelSize(R.dimen.sesl_list_subheader_min_height);
+            setMeasuredDimension(getMeasuredWidth(), resolveSize(height, heightMeasureSpec));
+        }
     }
 }

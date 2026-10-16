@@ -8,7 +8,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -36,51 +35,51 @@ public class IconRowView extends LinearLayout {
     }
 
     public IconRowView(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         setOrientation(VERTICAL);
-        setCardBackgroundColor(OneUIPalette.color(context, R.color.oui_floating_nav_surface));
+        setCardBackgroundColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface));
 
-        LinearLayout row = new LinearLayout(context);
+        LinearLayout row = new LinearLayout(getContext());
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(18), dp(12), dp(18), dp(12));
         addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, dp(82)));
 
-        badge = new FrameLayout(context);
+        badge = new FrameLayout(getContext());
         row.addView(badge, new LayoutParams(dp(44), dp(44)));
-        setIconBackgroundColor(OneUIPalette.color(context, R.color.oui_floating_nav_press));
-        icon = new ImageView(context);
+        setIconBackgroundColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_press));
+        icon = new ImageView(getContext());
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         badge.addView(icon, new FrameLayout.LayoutParams(dp(25), dp(25), Gravity.CENTER));
 
-        LinearLayout labels = new LinearLayout(context);
+        LinearLayout labels = new LinearLayout(getContext());
         labels.setOrientation(VERTICAL);
         LayoutParams labelsParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1);
         labelsParams.leftMargin = dp(18);
         row.addView(labels, labelsParams);
-        title = new TextView(context);
-        title.setTextColor(OneUIPalette.color(context, R.color.oui_primary_text_color));
+        title = new TextView(getContext());
+        title.setTextColor(OneUIPalette.color(getContext(), R.color.oui_primary_text_color));
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
         labels.addView(title);
-        subtitle = new TextView(context);
-        subtitle.setTextColor(OneUIPalette.color(context, R.color.oui_floating_nav_secondary));
+        subtitle = new TextView(getContext());
+        subtitle.setTextColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary));
         subtitle.setTextSize(14);
         subtitle.setSingleLine(true);
         subtitle.setEllipsize(TextUtils.TruncateAt.END);
         labels.addView(subtitle);
 
-        chevron = new ImageView(context);
+        chevron = new ImageView(getContext());
         chevron.setImageResource(R.drawable.oui_chevron_down);
         chevron.setImageTintList(ColorStateList.valueOf(
-                OneUIPalette.color(context, R.color.oui_floating_nav_secondary)));
+                OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary)));
         chevron.setVisibility(GONE);
         row.addView(chevron, new LayoutParams(dp(24), dp(24)));
 
-        detail = new TextView(context);
+        detail = new TextView(getContext());
         detail.setTextSize(14);
-        detail.setTextColor(OneUIPalette.color(context, R.color.oui_floating_nav_secondary));
+        detail.setTextColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary));
         detail.setPadding(dp(80), 0, dp(24), dp(18));
         detail.setVisibility(GONE);
         addView(detail);

@@ -14,7 +14,7 @@ public class HapticSeekBar extends SeslSeekBar {
     private SeslSeekBar.OnSeekBarChangeListener onSeekBarChangeListener;
 
     public HapticSeekBar(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
     }
 
     @Override

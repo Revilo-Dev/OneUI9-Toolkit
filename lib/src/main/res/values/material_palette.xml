@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="OneUIMaterialPaletteOverlay" />
+    <style name="OneUICustomPaletteOverlay">
+        <item name="colorPrimary">@color/oui_slider_active_color</item>
+        <item name="colorPrimaryDark">@color/oui_slider_active_color</item>
+        <item name="colorSecondary">@color/oui_floating_nav_secondary</item>
+        <item name="colorAccent">@color/oui_slider_active_color</item>
+        <item name="colorControlActivated">@color/oui_slider_active_color</item>
+        <item name="android:colorAccent">@color/oui_slider_active_color</item>
+        <item name="android:colorControlActivated">@color/oui_slider_active_color</item>
+    </style>
 </resources>

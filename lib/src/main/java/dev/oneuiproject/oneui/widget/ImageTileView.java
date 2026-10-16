@@ -32,32 +32,32 @@ public class ImageTileView extends FrameLayout {
     }
 
     public ImageTileView(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         setBackgroundColor(Color.TRANSPARENT);
         setClipToOutline(true);
         setCornerRadiusDp(18);
 
-        gradient = new View(context);
+        gradient = new View(getContext());
         addView(gradient, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         setGradientColors(0xFF62698B, 0xFF272C45);
 
-        image = new ImageView(context);
+        image = new ImageView(getContext());
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setVisibility(GONE);
         addView(image, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
-        View shade = new View(context);
+        View shade = new View(getContext());
         shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0x00000000, 0xB9000000}));
         addView(shade, new LayoutParams(LayoutParams.MATCH_PARENT, dp(82), Gravity.BOTTOM));
 
-        LinearLayout captions = new LinearLayout(context);
+        LinearLayout captions = new LinearLayout(getContext());
         captions.setOrientation(LinearLayout.VERTICAL);
         captions.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         captions.setPadding(dp(4), 0, dp(4), dp(10));
         addView(captions, new LayoutParams(LayoutParams.MATCH_PARENT, dp(62), Gravity.BOTTOM));
 
-        title = new TextView(context);
+        title = new TextView(getContext());
         title.setGravity(Gravity.CENTER);
         title.setTextColor(Color.WHITE);
         title.setTextSize(15);
@@ -66,7 +66,7 @@ public class ImageTileView extends FrameLayout {
         title.setEllipsize(TextUtils.TruncateAt.END);
         captions.addView(title);
 
-        subtitle = new TextView(context);
+        subtitle = new TextView(getContext());
         subtitle.setGravity(Gravity.CENTER);
         subtitle.setTextColor(0xFFE2E2E2);
         subtitle.setTextSize(12);

@@ -80,15 +80,18 @@ public class GridMenuDialog extends AlertDialog {
             params.width = mContext.getResources().getDisplayMetrics().widthPixels - dp(32);
             params.height = WindowManager.LayoutParams.WRAP_CONTENT;
             params.y = dp(16);
+            // The card owns its entrance animation; a second window animation flashes the surface.
+            params.windowAnimations = 0;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                 params.setBlurBehindRadius(0);
             window.setAttributes(params);
             window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-            View decor = window.getDecorView();
-            decor.animate().cancel();
-            decor.setAlpha(0f);
-            decor.setTranslationY(dp(44));
-            decor.animate().alpha(1f).translationY(0f).setDuration(220).start();
+            mContentView.animate().cancel();
+            mContentView.setAlpha(0f);
+            mContentView.setTranslationY(dp(24));
+            androidx.core.view.OneShotPreDrawListener.add(mContentView, () ->
+                    mContentView.animate().alpha(1f).translationY(0f).setDuration(180)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator()).start());
         }
     }
 

@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Handler;
@@ -108,11 +110,11 @@ public class SeekBarPreferencePro extends Preference
 
     public SeekBarPreferencePro(@NonNull Context context, @Nullable AttributeSet attrs,
                                 int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr, defStyleRes);
 
         setLayoutResource(R.layout.oui_preference_seekbar_pro_layout);
 
-        TypedArray a = context.obtainStyledAttributes(
+        TypedArray a = getContext().obtainStyledAttributes(
                 attrs, R.styleable.SeekBarPreferencePro, defStyleAttr, defStyleRes);
 
         mMin = a.getInt(R.styleable.SeekBarPreferencePro_min, 0);

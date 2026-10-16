@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <item name="oui_palette_secondary_text" type="id" />
+    <item name="oui_palette_refresh" type="id" />
+    <item name="oui_palette_signature" type="id" />
+    <item name="oui_palette_custom_applied" type="id" />
+    <item name="oui_palette_filled_button" type="id" />
+    <item name="oui_palette_original_background" type="id" />
     <item name="oui_scroll_edge_fades" type="id" />
     <item name="oui_scroll_edge_fades_disabled" type="id" />
     <item name="oui_full_bleed_padding_applied" type="id" />

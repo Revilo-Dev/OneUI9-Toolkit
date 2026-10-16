@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
@@ -23,9 +25,9 @@ public class OneUISliderPreference extends Preference {
     private int value;
 
     public OneUISliderPreference(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         setLayoutResource(R.layout.oui_preference_oneui_slider);
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.OneUISlider);
+        TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.OneUISlider);
         min = a.getInt(R.styleable.OneUISlider_minValue, 0);
         max = Math.max(min + 1, a.getInt(R.styleable.OneUISlider_maxValue, 100));
         step = Math.max(0, a.getInt(R.styleable.OneUISlider_stepSize, 0));

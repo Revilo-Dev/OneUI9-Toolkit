@@ -29,19 +29,24 @@ public final class TopActionSurfaceDrawable extends Drawable {
     private boolean blurEnabled;
     private float radius;
     private Integer tintColor;
+    private int alpha = 255;
+    private boolean captureDirty = true;
+    private boolean hardwareDirty = true;
+    private final BackdropRenderNode hardwareBackdrop = new BackdropRenderNode();
 
     public TopActionSurfaceDrawable(View host, View source, float radius) {
         this.host = host;
         this.source = source;
         this.radius = radius;
-        BlurSettings.observe(host);
+        BlurSettings.observe(host, this::refreshBackdrop);
         host.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(View view) { }
             @Override public void onViewDetachedFromWindow(View view) { release(); }
         });
     }
 
-    public void setBlurEnabled(boolean enabled) { blurEnabled = enabled; invalidateSelf(); }
+    public void setBlurEnabled(boolean enabled) { blurEnabled = enabled; refreshBackdrop(); }
+    public void refreshBackdrop() { captureDirty = hardwareDirty = true; invalidateSelf(); }
     public void setTintColor(@Nullable Integer color) { tintColor = color; invalidateSelf(); }
     public void setRadius(float pixels) {
         if (radius != pixels) { radius = pixels; invalidateSelf(); }
@@ -49,25 +54,35 @@ public final class TopActionSurfaceDrawable extends Drawable {
 
     @Override public void draw(@NonNull Canvas canvas) {
         Rect bounds = getBounds();
-        if (bounds.isEmpty()) return;
-        int save = canvas.save();
+        if (bounds.isEmpty() || alpha == 0) return;
+        int save = canvas.saveLayerAlpha(bounds.left, bounds.top, bounds.right, bounds.bottom, alpha);
         path.reset();
         path.addRoundRect(bounds.left, bounds.top, bounds.right, bounds.bottom,
                 Math.min(radius, bounds.height() / 2f),
                 Math.min(radius, bounds.height() / 2f), Path.Direction.CW);
+        int backdropSave = canvas.save();
         canvas.clipPath(path);
         boolean effectiveBlur = blurEnabled && BlurSettings.isEnabled(host.getContext());
-        if (effectiveBlur && source.isAttachedToWindow() && !host.isInEditMode()) {
-            capture(bounds.width(), bounds.height());
-            if (bitmap != null) {
-                paint.setColor(Color.WHITE);
-                canvas.drawBitmap(bitmap, null, bounds, paint);
+        if (effectiveBlur && BlurSettings.getIntensity(host.getContext()) > 0
+                && source.isAttachedToWindow() && !host.isInEditMode()) {
+            if (hardwareBackdrop.draw(canvas, host, source, bounds, hardwareDirty)) {
+                hardwareDirty = false;
+            } else {
+                if (captureDirty || bitmap == null) { capture(bounds.width(), bounds.height()); captureDirty = false; }
+                if (bitmap != null) {
+                    paint.setColor(Color.WHITE);
+                    canvas.drawBitmap(bitmap, null, bounds, paint);
+                }
             }
         }
+        canvas.restoreToCount(backdropSave);
         int solid = OneUIPalette.color(host.getContext(), R.color.oui_floating_nav_surface);
         int glass = OneUIPalette.color(host.getContext(), R.color.oui_floating_nav_glass);
-        paint.setColor(tintColor != null ? tintColor : effectiveBlur ? glass : solid);
-        canvas.drawRect(bounds, paint);
+        int tint = tintColor != null ? tintColor : effectiveBlur ? glass : solid;
+        paint.setColor(effectiveBlur ? BlurSettings.tint(host.getContext(), tint) : tint);
+        // Draw the tint with an antialiased shape rather than a stencil-clipped rectangle.
+        float rounded = Math.min(radius, bounds.height() / 2f);
+        canvas.drawRoundRect(bounds.left, bounds.top, bounds.right, bounds.bottom, rounded, rounded, paint);
         canvas.restoreToCount(save);
     }
 
@@ -95,29 +110,21 @@ public final class TopActionSurfaceDrawable extends Drawable {
             bitmap = null;
             return;
         }
-        bitmap.getPixels(sourcePixels, 0, width, 0, 0, width, height);
-        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-            int a = 0, r = 0, g = 0, b = 0;
-            for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
-                int pixel = sourcePixels[Math.max(0, Math.min(height - 1, y + dy)) * width
-                        + Math.max(0, Math.min(width - 1, x + dx))];
-                a += pixel >>> 24;
-                r += pixel >> 16 & 255;
-                g += pixel >> 8 & 255;
-                b += pixel & 255;
-            }
-            blurredPixels[y * width + x] = (a / 9 << 24) | (r / 9 << 16)
-                    | (g / 9 << 8) | b / 9;
-        }
-        bitmap.setPixels(blurredPixels, 0, width, 0, 0, width, height);
+        BackdropBlur.apply(bitmap, sourcePixels, blurredPixels,
+                BlurSettings.sampleRadius(host.getContext(), SAMPLE));
     }
 
     public void release() {
+        hardwareBackdrop.release();
         if (bitmap != null) bitmap.recycle();
         bitmap = null;
     }
 
-    @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
+    @Override public void setAlpha(int alpha) {
+        int next = Math.max(0, Math.min(255, alpha));
+        if (this.alpha != next) { this.alpha = next; invalidateSelf(); }
+    }
+    @Override public int getAlpha() { return alpha; }
     @Override public void setColorFilter(@Nullable ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
     @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
 }

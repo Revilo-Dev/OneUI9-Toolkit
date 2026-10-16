@@ -53,14 +53,14 @@ public class HorizontalRadioPreference extends Preference {
     private HashMap<String, Boolean> mIsItemEnabledMap = new HashMap<>();
 
     public HorizontalRadioPreference(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
 
         TypedValue outValue = new TypedValue();
         getContext().getTheme().resolveAttribute(R.attr.colorPrimaryDark, outValue, true);
         SELECTED_COLOR = outValue.data;
         UNSELECTED_COLOR = OneUIPalette.color(getContext(), R.color.oui_horizontalradiopref_text_unselected_color);
 
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.HorizontalRadioPreference);
+        TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.HorizontalRadioPreference);
 
         mType = a.getInt(R.styleable.HorizontalRadioPreference_viewType, IMAGE);
         mEntries = a.getTextArray(R.styleable.HorizontalRadioPreference_entries);
@@ -69,7 +69,7 @@ public class HorizontalRadioPreference extends Preference {
         if (mType == IMAGE) {
             final int entriesImageResId = a.getResourceId(R.styleable.HorizontalRadioPreference_entriesImage, 0);
             if (entriesImageResId != 0) {
-                TypedArray ta = context.getResources().obtainTypedArray(entriesImageResId);
+                TypedArray ta = getContext().getResources().obtainTypedArray(entriesImageResId);
                 mEntriesImage = new int[ta.length()];
                 for (int i = 0; i < ta.length(); i++) {
                     mEntriesImage[i] = ta.getResourceId(i, 0);

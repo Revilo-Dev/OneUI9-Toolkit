@@ -16,6 +16,14 @@ import dev.oneuiproject.oneui.widget.MaterialColorSettings;
 import dev.oneuiproject.oneui.widget.OneUIPalette;
 
 public class SampleAboutActivity extends AppCompatActivity {
+    private android.view.LayoutInflater paletteInflater;
+
+    @Override public android.view.LayoutInflater getLayoutInflater() {
+        if (paletteInflater == null) paletteInflater = dev.oneuiproject.oneui.widget.PaletteInflater
+                .create(this, super.getLayoutInflater());
+        return paletteInflater;
+    }
+
     private AppInfoLayout appInfoLayout;
 
     @Override

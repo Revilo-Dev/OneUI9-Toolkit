@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.layout;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -146,9 +148,9 @@ public class ToolbarLayout extends LinearLayout {
     }
 
     public ToolbarLayout(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         mActivity = getActivity();
-        mContext = context;
+        mContext = getContext();
 
         setOrientation(VERTICAL);
 
@@ -197,6 +199,7 @@ public class ToolbarLayout extends LinearLayout {
     }
 
     private void initAppBar() {
+        if (getTag() == null) setTag("oneui.palette.background");
         mCoordinatorLayout = findViewById(R.id.toolbarlayout_coordinator_layout);
         mAppBarLayout = mCoordinatorLayout.findViewById(R.id.toolbarlayout_app_bar);
         mCollapsingToolbarLayout = mAppBarLayout.findViewById(R.id.toolbarlayout_collapsing_toolbar);

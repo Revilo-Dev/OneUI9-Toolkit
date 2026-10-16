@@ -32,7 +32,6 @@ import androidx.annotation.Dimension;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.Px;
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.appcompat.widget.TooltipCompat;
 import androidx.core.content.ContextCompat;
@@ -91,9 +90,9 @@ public class DrawerLayout extends ToolbarLayout {
     private boolean pushContentOnOpen;
 
     public DrawerLayout(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         initDrawer();
-        TypedArray drawerAttrs = context.obtainStyledAttributes(attrs, R.styleable.DrawerLayout);
+        TypedArray drawerAttrs = getContext().obtainStyledAttributes(attrs, R.styleable.DrawerLayout);
         try {
             pushContentOnOpen = drawerAttrs.getBoolean(
                     R.styleable.DrawerLayout_pushContentOnOpen, false);
@@ -144,7 +143,7 @@ public class DrawerLayout extends ToolbarLayout {
         mDrawerGlass = findViewById(R.id.drawerlayout_glass);
         mDrawerGlass.setSourceView(mToolbarContent);
         mDrawerGlass.setBlurEnabled(true);
-        Runnable updateGlassTint = () -> mDrawerGlass.setTintColor(mContext.getColor(
+        Runnable updateGlassTint = () -> mDrawerGlass.setTintColor(OneUIPalette.color(mContext,
                 BlurSettings.isEnabled(mContext) ? R.color.oui_drawer_glass_tint
                         : R.color.oui_floating_nav_surface));
         updateGlassTint.run();

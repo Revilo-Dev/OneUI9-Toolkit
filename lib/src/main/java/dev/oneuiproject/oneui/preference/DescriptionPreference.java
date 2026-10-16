@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
@@ -25,17 +27,17 @@ public class DescriptionPreference extends Preference {
 
     public DescriptionPreference(@NonNull Context context, @Nullable AttributeSet attrs,
                                  int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-        mContext = context;
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr, defStyleRes);
+        mContext = getContext();
         setSelectable(false);
 
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.Preference);
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.Preference);
             setLayoutResource(a.getResourceId(R.styleable.Preference_android_layout,
                     R.layout.oui_preference_unclickable_layout));
             a.recycle();
 
-            a = context.obtainStyledAttributes(attrs, R.styleable.DescriptionPreference);
+            a = getContext().obtainStyledAttributes(attrs, R.styleable.DescriptionPreference);
             seslSetSubheaderRoundedBackground(a.getInt(R.styleable.DescriptionPreference_roundedCorners,
                     SeslRoundedCorner.ROUNDED_CORNER_ALL));
             mPositionMode = a.getInt(R.styleable.DescriptionPreference_positionMode,

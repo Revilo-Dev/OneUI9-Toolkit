@@ -18,7 +18,6 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
@@ -59,12 +58,12 @@ public class FloatingToolbar extends LinearLayout {
     public FloatingToolbar(Context context, AttributeSet attrs) { this(context, attrs, 0); }
 
     public FloatingToolbar(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
         lightSurface = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 != Configuration.UI_MODE_NIGHT_YES;
         int menuRes = 0;
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.FloatingToolbar,
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.FloatingToolbar,
                     defStyleAttr, 0);
             showLabels = a.getBoolean(R.styleable.FloatingToolbar_toolbarShowLabels, true);
             lightSurface = a.getBoolean(R.styleable.FloatingToolbar_toolbarLightSurface, lightSurface);
@@ -78,6 +77,7 @@ public class FloatingToolbar extends LinearLayout {
         setClipToOutline(true);
         setElevation(dp(8));
         updateColors();
+        OneUIPalette.observe(this, this::updateColors);
         BlurSettings.observe(this, () -> { updateColors(); invalidate(); });
         if (menuRes != 0) inflateMenu(menuRes);
     }
@@ -159,8 +159,8 @@ public class FloatingToolbar extends LinearLayout {
                 getHeight() / 2f, Path.Direction.CW);
         canvas.clipPath(clipPath);
         canvas.drawBitmap(backdrop, null, new Rect(0, 0, getWidth(), getHeight()), bitmapPaint);
-        surfacePaint.setColor(color(lightSurface ? R.color.oui_floating_toolbar_glass_light
-                : R.color.oui_floating_toolbar_glass_dark));
+        surfacePaint.setColor(BlurSettings.tint(getContext(), color(lightSurface ? R.color.oui_floating_toolbar_glass_light
+                : R.color.oui_floating_toolbar_glass_dark)));
         canvas.drawRect(0, 0, getWidth(), getHeight(), surfacePaint);
         canvas.restoreToCount(save);
     }
@@ -194,26 +194,7 @@ public class FloatingToolbar extends LinearLayout {
             if (switcher != null) switcher.setBackdropCapture(false);
             capturingBackdrop = false;
         }
-        backdrop.getPixels(pixels, 0, width, 0, 0, width, height);
-        for (int row = 0; row < height; row++) {
-            for (int col = 0; col < width; col++) {
-                int a = 0, r = 0, g = 0, b = 0;
-                for (int dy = -1; dy <= 1; dy++) {
-                    int y = Math.max(0, Math.min(height - 1, row + dy));
-                    for (int dx = -1; dx <= 1; dx++) {
-                        int x = Math.max(0, Math.min(width - 1, col + dx));
-                        int sample = pixels[y * width + x];
-                        a += sample >>> 24;
-                        r += sample >> 16 & 255;
-                        g += sample >> 8 & 255;
-                        b += sample & 255;
-                    }
-                }
-                blurred[row * width + col] = (a / 9 << 24) | (r / 9 << 16)
-                        | (g / 9 << 8) | b / 9;
-            }
-        }
-        backdrop.setPixels(blurred, 0, width, 0, 0, width, height);
+        BackdropBlur.apply(backdrop, pixels, blurred, BlurSettings.sampleRadius(getContext(), scale));
     }
 
     @Override protected void onDetachedFromWindow() {

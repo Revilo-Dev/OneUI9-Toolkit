@@ -23,20 +23,21 @@ public class FloatingActionBar extends LinearLayout {
 
     public FloatingActionBar(Context context) { this(context, null); }
     public FloatingActionBar(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         lightSurface = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 != Configuration.UI_MODE_NIGHT_YES;
         setOrientation(HORIZONTAL);
         setGravity(Gravity.CENTER_VERTICAL);
         setPadding(dp(6), dp(6), dp(6), dp(6));
-        setElevation(dp(8));
+        SurfaceShadow.apply(this, true, dp(1), dp(32));
         cancel = makeAction("Cancel");
-        divider = new View(context);
+        divider = new View(getContext());
         confirm = makeAction("Save");
         addView(cancel, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1));
         addView(divider, new LayoutParams(dp(1), dp(24)));
         addView(confirm, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1));
         updateColors();
+        OneUIPalette.observe(this, this::updateColors);
     }
 
     public void setLabels(CharSequence cancelLabel, CharSequence confirmLabel) {

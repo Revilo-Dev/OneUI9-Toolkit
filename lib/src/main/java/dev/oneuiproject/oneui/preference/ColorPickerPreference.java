@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.app.Dialog;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -39,13 +41,13 @@ public class ColorPickerPreference extends Preference implements Preference.OnPr
     }
 
     public ColorPickerPreference(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
+        init(getContext(), attrs);
     }
 
     public ColorPickerPreference(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
+        init(getContext(), attrs);
     }
 
     public static int convertToColorInt(String argb) throws IllegalArgumentException {

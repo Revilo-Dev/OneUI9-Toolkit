@@ -43,8 +43,8 @@ public class MarginsTabLayout extends TabLayout {
 
     public MarginsTabLayout(@NonNull Context context,@Nullable AttributeSet attrs,
                             int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        mContext = context;
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
+        mContext = getContext();
 
         final Point size = new Point();
         WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);

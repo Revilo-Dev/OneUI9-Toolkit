@@ -1,6 +1,7 @@
 package dev.oneuiproject.oneui.widget;
 
 import android.content.res.Configuration;
+import android.animation.ValueAnimator;
 import android.graphics.Outline;
 import android.graphics.drawable.Drawable;
 import android.view.View;
@@ -32,6 +33,14 @@ public final class StickyToolbarControls {
     private Drawable actionsBackground;
     private TopActionSurfaceDrawable navigationSurface;
     private TopActionSurfaceDrawable actionsSurface;
+    private Drawable navigationFeedback;
+    private final Map<View, Drawable> actionBackgrounds = new IdentityHashMap<>();
+    private final ViewOutlineProvider surfaceOutline = new ViewOutlineProvider() {
+        @Override public void getOutline(View target, Outline outline) {
+            outline.setRoundRect(0, 0, target.getWidth(), target.getHeight(),
+                    target == navigation ? target.getHeight() / 2f : cornerRadius);
+        }
+    };
     private int navPaddingLeft, navPaddingTop, navPaddingRight, navPaddingBottom;
     private int navigationWidth, navigationHeight;
     private int navigationMarginStart, navigationMarginEnd;
@@ -52,6 +61,8 @@ public final class StickyToolbarControls {
     private int cornerRadius;
     private float shadowElevation;
     private Integer tintColor;
+    private float surfaceAlpha;
+    private ValueAnimator surfaceAnimator;
     private final Map<View, int[]> originalActionSizes = new IdentityHashMap<>();
 
     public StickyToolbarControls(AppBarLayout appBar, Toolbar toolbar, View content) {
@@ -75,6 +86,12 @@ public final class StickyToolbarControls {
         toolbar.getViewTreeObserver().addOnGlobalLayoutListener(this::refresh);
         content.getViewTreeObserver().addOnScrollChangedListener(this::refresh);
         content.getViewTreeObserver().addOnGlobalLayoutListener(this::refresh);
+        toolbar.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) { refresh(); }
+            @Override public void onViewDetachedFromWindow(View view) {
+                if (surfaceAnimator != null) surfaceAnimator.cancel();
+            }
+        });
     }
 
     public void setEnabled(boolean value) { enabled = value; refresh(); }
@@ -109,40 +126,55 @@ public final class StickyToolbarControls {
     @Nullable public ActionMenuView getActionsControl() { return actions; }
 
     public void refresh() {
+        Drawable background = enabled ? null : toolbarBackground;
+        if (toolbar.getBackground() != background) toolbar.setBackground(background);
         boolean shouldShow = enabled && appBar.getTotalScrollRange() > 0
                 && Math.abs(offset) >= appBar.getTotalScrollRange() - collapseTolerance
                 && (!requireContentScroll || hasScrolledContent(content));
-        boolean entering = shouldShow && !active;
-        boolean leaving = !shouldShow && active;
-        if (shouldShow != active) {
-            active = shouldShow;
-            toolbar.setBackground(active ? null : toolbarBackground);
-            toolbar.setContentInsetsRelative(0, 0);
-        }
         findControls();
+        // Geometry is identical in both states. Only the glass behind the icons fades.
         styleNavigation();
         styleActions();
-        if (leaving) {
-            if (navigation != null) { navigation.animate().cancel(); navigation.setAlpha(1f); }
-            if (actions != null) { actions.animate().cancel(); actions.setAlpha(1f); }
-        }
-        if (entering) {
-            // Animate the actual toolbar controls when their floating surfaces appear.
-            if (navigation != null && toolbar.getNavigationIcon() != null) {
-                navigation.animate().cancel();
-                navigation.setAlpha(0f);
-                navigation.animate().alpha(1f).setDuration(140).start();
-            }
-            if (actions != null && actions.getChildCount() > 0) {
-                actions.animate().cancel();
-                actions.setAlpha(0f);
-                actions.animate().alpha(1f).setDuration(140).start();
-            }
+        if (shouldShow != active) {
+            active = shouldShow;
+            if (surfaceAnimator != null) surfaceAnimator.cancel();
+            surfaceAnimator = ValueAnimator.ofFloat(surfaceAlpha, active ? 1f : 0f);
+            surfaceAnimator.setDuration(180);
+            surfaceAnimator.addUpdateListener(animation -> {
+                surfaceAlpha = (float) animation.getAnimatedValue();
+                updateSurfaceAlpha();
+            });
+            surfaceAnimator.start();
         }
         if (active) {
-            if (navigation != null) navigation.invalidate();
-            if (actions != null) actions.invalidate();
+            if (navigationSurface != null) navigationSurface.refreshBackdrop();
+            if (actionsSurface != null) actionsSurface.refreshBackdrop();
         }
+    }
+
+    private void updateSurfaceAlpha() {
+        int alpha = Math.round(255 * surfaceAlpha);
+        if (navigationSurface != null) navigationSurface.setAlpha(alpha);
+        if (actionsSurface != null) actionsSurface.setAlpha(alpha);
+        if (navigation != null) updateOutline(navigation, surfaceAlpha > 0);
+        if (actions != null) updateOutline(actions, surfaceAlpha > 0);
+    }
+
+    private void installSurface(View view, TopActionSurfaceDrawable surface, Drawable original) {
+        int left = view.getPaddingLeft(), top = view.getPaddingTop();
+        int right = view.getPaddingRight(), bottom = view.getPaddingBottom();
+        surface.setAlpha(Math.round(255 * surfaceAlpha));
+        // The device's old action-button mask can be polygonal. Use one matching mask.
+        if (view == navigation) {
+            navigationFeedback = circularFeedback(surface);
+            view.setBackground(navigationFeedback);
+        } else view.setBackground(surface);
+        view.setPadding(left, top, right, bottom);
+    }
+
+    private Drawable circularFeedback(@Nullable Drawable content) {
+        return new RoundControlFeedback(content, OneUIPalette.color(toolbar.getContext(),
+                dev.oneuiproject.oneui.design.R.color.oui_floating_nav_press));
     }
 
     private void findControls() {
@@ -150,6 +182,8 @@ public final class StickyToolbarControls {
             View child = toolbar.getChildAt(i);
             if (child instanceof AppCompatImageButton && child != navigation) {
                 navigation = child;
+                if (android.os.Build.VERSION.SDK_INT >= 26)
+                    child.setDefaultFocusHighlightEnabled(false);
                 navigationBackground = child.getBackground();
                 navPaddingLeft = child.getPaddingLeft();
                 navPaddingTop = child.getPaddingTop();
@@ -164,8 +198,11 @@ public final class StickyToolbarControls {
                 navigationSurface = new TopActionSurfaceDrawable(child, content, cornerRadius);
                 navigationSurface.setBlurEnabled(blurEnabled);
                 navigationSurface.setTintColor(tintColor);
+                installSurface(child, navigationSurface, navigationBackground);
             } else if (child instanceof ActionMenuView && child != actions) {
                 actions = (ActionMenuView) child;
+                actions.setClipChildren(false);
+                actions.setClipToPadding(false);
                 actionsBackground = child.getBackground();
                 actionPaddingLeft = child.getPaddingLeft();
                 actionPaddingTop = child.getPaddingTop();
@@ -179,14 +216,15 @@ public final class StickyToolbarControls {
                 actionsSurface = new TopActionSurfaceDrawable(child, content, cornerRadius);
                 actionsSurface.setBlurEnabled(blurEnabled);
                 actionsSurface.setTintColor(tintColor);
+                installSurface(child, actionsSurface, actionsBackground);
             }
         }
     }
 
     private void styleNavigation() {
         if (navigation == null) return;
-        boolean show = active && toolbar.getNavigationIcon() != null;
-        Drawable background = show ? navigationSurface : navigationBackground;
+        boolean show = enabled && toolbar.getNavigationIcon() != null;
+        Drawable background = show ? navigationFeedback : navigationBackground;
         if (navigation.getBackground() != background) navigation.setBackground(background);
         int left = show ? surfacePadding : navPaddingLeft;
         int top = show ? surfacePadding : navPaddingTop;
@@ -207,7 +245,7 @@ public final class StickyToolbarControls {
         }
         setMargins(navigation, show, navigationMarginStart, navigationMarginEnd);
         navigation.setTranslationY(navigationTranslationY + (show ? verticalOffset : 0));
-        updateOutline(navigation, show);
+        updateOutline(navigation, surfaceAlpha > 0);
     }
 
     private void styleActions() {
@@ -215,7 +253,7 @@ public final class StickyToolbarControls {
         int count = 0;
         for (int i = 0; i < actions.getChildCount(); i++)
             if (actions.getChildAt(i).getVisibility() == View.VISIBLE) count++;
-        boolean show = active && count > 0;
+        boolean show = enabled && count > 0;
         Drawable background = show ? actionsSurface : actionsBackground;
         if (actions.getBackground() != background) actions.setBackground(background);
         int left = show ? surfacePadding : actionPaddingLeft;
@@ -229,6 +267,9 @@ public final class StickyToolbarControls {
             for (int i = 0; i < actions.getChildCount(); i++) {
                 View child = actions.getChildAt(i);
                 if (child.getVisibility() != View.VISIBLE) continue;
+                if (android.os.Build.VERSION.SDK_INT >= 26)
+                    child.setDefaultFocusHighlightEnabled(false);
+                styleOverflow(child);
                 ViewGroup.LayoutParams params = child.getLayoutParams();
                 if (!originalActionSizes.containsKey(child))
                     originalActionSizes.put(child, new int[]{params.width, params.height,
@@ -238,8 +279,16 @@ public final class StickyToolbarControls {
                     params.height = itemWidth;
                     child.setLayoutParams(params);
                 }
-                child.setMinimumWidth(itemWidth);
-                child.setMinimumHeight(itemWidth);
+                // These setters request layout even when the value is unchanged.
+                if (child.getMinimumWidth() != itemWidth) child.setMinimumWidth(itemWidth);
+                if (child.getMinimumHeight() != itemWidth) child.setMinimumHeight(itemWidth);
+                if (!actionBackgrounds.containsKey(child)) {
+                    actionBackgrounds.put(child, child.getBackground());
+                    int l = child.getPaddingLeft(), t = child.getPaddingTop();
+                    int r = child.getPaddingRight(), b = child.getPaddingBottom();
+                    child.setBackground(circularFeedback(null));
+                    child.setPadding(l, t, r, b);
+                }
             }
         } else if (!originalActionSizes.isEmpty()) {
             for (Map.Entry<View, int[]> entry : originalActionSizes.entrySet()) {
@@ -256,6 +305,9 @@ public final class StickyToolbarControls {
                 child.setMinimumHeight(size[3]);
             }
             originalActionSizes.clear();
+            for (Map.Entry<View, Drawable> entry : actionBackgrounds.entrySet())
+                entry.getKey().setBackground(entry.getValue());
+            actionBackgrounds.clear();
         }
         ViewGroup.LayoutParams params = actions.getLayoutParams();
         int height = show ? itemWidth + surfacePadding * 2 : actionsHeight;
@@ -266,7 +318,43 @@ public final class StickyToolbarControls {
         }
         setMargins(actions, show, actionsMarginStart, actionsMarginEnd);
         actions.setTranslationY(actionsTranslationY + (show ? verticalOffset : 0));
-        updateOutline(actions, show);
+        updateOutline(actions, surfaceAlpha > 0);
+    }
+
+    private void styleOverflow(View child) {
+        if (!(child instanceof android.widget.FrameLayout)) return;
+        android.widget.FrameLayout wrapper = (android.widget.FrameLayout) child;
+        wrapper.setClipChildren(false);
+        wrapper.setClipToPadding(false);
+        for (int i = 0; i < wrapper.getChildCount(); i++) {
+            View inner = wrapper.getChildAt(i);
+            if (inner instanceof android.widget.ImageView && !actionBackgrounds.containsKey(inner)) {
+                actionBackgrounds.put(inner, inner.getBackground());
+                inner.setStateListAnimator(null);
+                if (android.os.Build.VERSION.SDK_INT >= 26)
+                    inner.setDefaultFocusHighlightEnabled(false);
+                inner.setTranslationZ(0);
+                inner.setBackground(circularFeedback(null));
+                android.widget.FrameLayout.LayoutParams params =
+                        (android.widget.FrameLayout.LayoutParams) inner.getLayoutParams();
+                params.width = itemWidth;
+                params.height = itemWidth;
+                params.gravity = android.view.Gravity.CENTER;
+                inner.setLayoutParams(params);
+            } else if (inner instanceof ViewGroup) {
+                // Keep the badge outside the three-dot glyph, at the button's top end.
+                android.widget.FrameLayout.LayoutParams params =
+                        (android.widget.FrameLayout.LayoutParams) inner.getLayoutParams();
+                int gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+                if (params.gravity != gravity || params.topMargin != -dp(2)
+                        || params.getMarginEnd() != -dp(4)) {
+                    params.gravity = gravity;
+                    params.topMargin = -dp(2);
+                    params.setMarginEnd(-dp(4));
+                    inner.setLayoutParams(params);
+                }
+            }
+        }
     }
 
     private void setMargins(View view, boolean show, int originalStart, int originalEnd) {
@@ -281,21 +369,21 @@ public final class StickyToolbarControls {
     }
 
     private void updateOutline(View view, boolean show) {
-        if (show) {
-            view.setOutlineProvider(new ViewOutlineProvider() {
-                @Override public void getOutline(View target, Outline outline) {
-                    outline.setRoundRect(0, 0, target.getWidth(), target.getHeight(),
-                            target == navigation ? target.getHeight() / 2f : cornerRadius);
-                }
-            });
+        // One outline throughout the fade prevents device-specific shape transitions.
+        if (enabled) {
+            view.setStateListAnimator(null);
+            if (view.getTranslationZ() != 0) view.setTranslationZ(0);
+            if (view.getOutlineProvider() != surfaceOutline) view.setOutlineProvider(surfaceOutline);
             int mode = toolbar.getResources().getConfiguration().uiMode
                     & Configuration.UI_MODE_NIGHT_MASK;
             float elevation = mode == Configuration.UI_MODE_NIGHT_YES
                     ? Math.min(shadowElevation, dp(2)) : shadowElevation;
+            elevation *= surfaceAlpha;
             if (view.getElevation() != elevation) view.setElevation(elevation);
         } else {
             if (view.getElevation() != 0) view.setElevation(0);
-            view.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
+            if (view.getOutlineProvider() != ViewOutlineProvider.BACKGROUND)
+                view.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
         }
     }
 

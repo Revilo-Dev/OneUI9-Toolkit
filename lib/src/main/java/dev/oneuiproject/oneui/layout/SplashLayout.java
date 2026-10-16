@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.layout;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
@@ -32,18 +34,18 @@ public class SplashLayout extends LinearLayout {
     private Drawable mImage;
 
     public SplashLayout(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
-        TypedArray attr = context.getTheme().obtainStyledAttributes(attrs, R.styleable.SplashLayout, 0, 0);
+        super(OneUIPalette.wrap(context, attrs), attrs);
+        TypedArray attr = getContext().getTheme().obtainStyledAttributes(attrs, R.styleable.SplashLayout, 0, 0);
 
         try {
             animated = attr.getBoolean(R.styleable.SplashLayout_animated, true);
             mText = attr.getString(R.styleable.SplashLayout_title);
-            if (mText == null) mText = context.getString(R.string.app_name);
+            if (mText == null) mText = getContext().getString(R.string.app_name);
 
             if (animated) {
                 mImage_foreground = attr.getDrawable(R.styleable.SplashLayout_foreground_image);
                 mImage_background = attr.getDrawable(R.styleable.SplashLayout_background_image);
-                splash_anim = AnimationUtils.loadAnimation(context, attr.getResourceId(R.styleable.SplashLayout_animation, R.anim.oui_splash_animation));
+                splash_anim = AnimationUtils.loadAnimation(getContext(), attr.getResourceId(R.styleable.SplashLayout_animation, R.anim.oui_splash_animation));
             } else {
                 mImage = attr.getDrawable(R.styleable.SplashLayout_image);
             }
@@ -52,7 +54,7 @@ public class SplashLayout extends LinearLayout {
             attr.recycle();
         }
 
-        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         inflater.inflate(animated ? R.layout.oui_layout_splash_animated : R.layout.oui_layout_splash_simple, this, true);
 
 

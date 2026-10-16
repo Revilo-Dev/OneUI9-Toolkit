@@ -25,10 +25,10 @@ public class ProgressiveBlurLayout extends FrameLayout {
     public ProgressiveBlurLayout(Context context) { this(context, null); }
     public ProgressiveBlurLayout(Context context, AttributeSet attrs) { this(context, attrs, 0); }
     public ProgressiveBlurLayout(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
         topHeight = bottomHeight = Math.round(56 * getResources().getDisplayMetrics().density);
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ProgressiveBlurLayout,
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.ProgressiveBlurLayout,
                     defStyleAttr, 0);
             topHeight = bottomHeight = a.getDimensionPixelSize(
                     R.styleable.ProgressiveBlurLayout_blurHeight, topHeight);
@@ -37,10 +37,10 @@ public class ProgressiveBlurLayout extends FrameLayout {
             customFadeColor = a.hasValue(R.styleable.ProgressiveBlurLayout_fadeColor);
             if (customFadeColor) fadeColor = a.getColor(
                     R.styleable.ProgressiveBlurLayout_fadeColor,
-                    OneUIPalette.color(context, R.color.oui_background_color));
+                    OneUIPalette.color(getContext(), R.color.oui_background_color));
             a.recycle();
         }
-        if (!customFadeColor) fadeColor = OneUIPalette.color(context, R.color.oui_background_color);
+        if (!customFadeColor) fadeColor = OneUIPalette.color(getContext(), R.color.oui_background_color);
         setWillNotDraw(false);
         BlurSettings.observe(this);
     }

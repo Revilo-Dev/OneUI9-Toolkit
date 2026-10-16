@@ -9,10 +9,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
-import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Parcel;
-import android.os.Build;
 import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.view.Gravity;
@@ -20,8 +18,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.OvershootInterpolator;
-import android.widget.FrameLayout;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
@@ -80,7 +77,7 @@ public class FloatingNavigationBar extends LinearLayout {
     public FloatingNavigationBar(Context context, AttributeSet attrs) { this(context, attrs, 0); }
 
     public FloatingNavigationBar(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
         setOrientation(HORIZONTAL);
         setGravity(Gravity.CENTER_VERTICAL);
         setWillNotDraw(false);
@@ -91,10 +88,10 @@ public class FloatingNavigationBar extends LinearLayout {
         itemWidth = dp(70);
         barHeight = dp(60);
         selectionInset = dp(5);
-        lightShadowElevation = dp(5);
+        lightShadowElevation = dp(1);
         int menuRes = 0;
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.FloatingNavigationBar,
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.FloatingNavigationBar,
                     defStyleAttr, 0);
             showLabels = a.getBoolean(R.styleable.FloatingNavigationBar_showLabels, true);
             blurEnabled = a.getBoolean(R.styleable.FloatingNavigationBar_blurEnabled, true);
@@ -103,15 +100,15 @@ public class FloatingNavigationBar extends LinearLayout {
             actionDescription = a.getText(R.styleable.FloatingNavigationBar_actionContentDescription);
             a.recycle();
         }
-        pill = new SelectionPill(context);
+        pill = new SelectionPill(getContext());
         pill.setOrientation(HORIZONTAL);
         pill.setGravity(Gravity.CENTER_VERTICAL);
-        pill.setPadding(dp(10), dp(4), dp(10), dp(4));
+        pill.setPadding(dp(18), dp(4), dp(18), dp(4));
         addView(pill, new LayoutParams(LayoutParams.WRAP_CONTENT, barHeight));
         overflowItem = new NavigationItem(View.generateViewId(),
-                context.getDrawable(R.drawable.oui_ic_navigation_more), "Menu");
+                getContext().getDrawable(R.drawable.oui_ic_navigation_more), "Menu");
         overflowItem.view.setOnClickListener(v -> showOverflowMenu());
-        action = new ImageView(context);
+        action = new ImageView(getContext());
         action.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         action.setPadding(dp(19), dp(19), dp(19), dp(19));
         action.setClickable(true);
@@ -124,6 +121,7 @@ public class FloatingNavigationBar extends LinearLayout {
         if (menuRes != 0) inflateMenu(menuRes);
         updateAction();
         updateSelection();
+        OneUIPalette.observe(this, () -> { updateSurfaces(); updateSelection(); invalidate(); });
     }
 
     /** Menu items supply stable IDs, icons and titles. Extra destinations move into More. */
@@ -351,11 +349,19 @@ public class FloatingNavigationBar extends LinearLayout {
     }
 
     @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int desired = Math.min(items.size(), MAX_ITEMS) * itemWidth + dp(20)
+        int desired = Math.min(items.size(), MAX_ITEMS) * itemWidth + dp(36)
                 + (action.getVisibility() == VISIBLE ? barHeight + dp(8) : 0);
         int available = View.MeasureSpec.getSize(widthMeasureSpec);
         widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(
                 Math.min(desired, available), View.MeasureSpec.EXACTLY);
+        int count = visibleItems().size();
+        int endWidth = action.getVisibility() == VISIBLE ? barHeight + dp(8) : 0;
+        int cellWidth = count == 0 ? itemWidth : Math.min(itemWidth,
+                Math.max(1, (Math.min(desired, available) - dp(36) - endWidth) / count));
+        for (NavigationItem item : visibleItems()) {
+            ViewGroup.LayoutParams params = item.view.getLayoutParams();
+            if (params.width != cellWidth) { params.width = cellWidth; item.view.setLayoutParams(params); }
+        }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
@@ -376,30 +382,20 @@ public class FloatingNavigationBar extends LinearLayout {
     private void updateSurfaces() {
         boolean light = (getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES;
-        if (light) {
-            GradientDrawable pillBackground = new GradientDrawable();
-            pillBackground.setColor(surfaceColorOverride != null ? surfaceColorOverride
-                    : OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface));
-            pillBackground.setCornerRadius(barHeight / 2f);
-            pill.setBackground(pillBackground);
-            pill.setElevation(lightShadowElevation);
-            GradientDrawable actionBackground = new GradientDrawable();
-            actionBackground.setColor(surfaceColorOverride != null ? surfaceColorOverride
-                    : OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface));
-            actionBackground.setCornerRadius(barHeight / 2f);
-            action.setBackground(actionBackground);
-            action.setElevation(lightShadowElevation);
-        } else {
-            pill.setBackground(null);
-            action.setBackground(null);
-            pill.setElevation(0);
-            action.setElevation(0);
-        }
+        pill.setBackground(null);
+        action.setBackground(null);
+        SurfaceShadow.apply(pill, light, lightShadowElevation, barHeight / 2f);
+        SurfaceShadow.apply(action, light, lightShadowElevation, barHeight / 2f);
+    }
+
+    private int navigationSurface() {
+        return surfaceColorOverride != null ? surfaceColorOverride
+                : OneUIPalette.get(getContext(), OneUIPalette.isDark(getContext())
+                        ? OneUIPalette.SURFACE : OneUIPalette.SURFACE_VARIANT);
     }
 
     private void updateSelection() {
         int primary = OneUIPalette.color(getContext(), R.color.oui_floating_nav_primary);
-        int secondary = OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary);
         int selectedColor = selectedColorOverride != null ? selectedColorOverride
                 : OneUIPalette.color(getContext(), R.color.oui_floating_nav_selected);
         for (NavigationItem item : visibleItems()) {
@@ -418,8 +414,8 @@ public class FloatingNavigationBar extends LinearLayout {
                 labelParams.topMargin = labelGap;
                 item.label.setLayoutParams(labelParams);
             }
-            item.label.setTextColor(selected ? primary : secondary);
-            item.icon.setColorFilter(selected ? primary : secondary);
+            item.label.setTextColor(primary);
+            item.icon.setColorFilter(primary);
         }
         pill.setHighlightColor(selectedColor);
         pill.post(() -> {
@@ -447,9 +443,8 @@ public class FloatingNavigationBar extends LinearLayout {
         int height = getHeight();
         if (width == 0 || height == 0) return;
         boolean hasAction = action.getVisibility() == VISIBLE;
-        int surface = surfaceColorOverride != null ? surfaceColorOverride
-                : OneUIPalette.color(getContext(), R.color.oui_floating_nav_surface);
-        int overlay = OneUIPalette.color(getContext(), R.color.oui_floating_nav_glass);
+        int surface = navigationSurface();
+        int overlay = surface;
         if (isBlurActive() && getParent() instanceof ViewGroup && !isInEditMode()) captureBackdrop();
         drawShape(canvas, pill.getLeft(), pill.getTop(), pill.getRight(), pill.getBottom(), surface, overlay);
         if (hasAction) drawShape(canvas, action.getLeft(), action.getTop(),
@@ -464,7 +459,7 @@ public class FloatingNavigationBar extends LinearLayout {
         canvas.clipPath(clipPath);
         if (isBlurActive() && backdrop != null) {
             canvas.drawBitmap(backdrop, null, new Rect(0, 0, getWidth(), getHeight()), bitmapPaint);
-            shapePaint.setColor(glass);
+            shapePaint.setColor(BlurSettings.tint(getContext(), glass));
         } else shapePaint.setColor(solid);
         canvas.drawRect(left, top, right, bottom, shapePaint);
         canvas.restoreToCount(save);
@@ -503,26 +498,7 @@ public class FloatingNavigationBar extends LinearLayout {
             if (switcher != null) switcher.setBackdropCapture(false);
             capturingBackdrop = false;
         }
-        backdrop.getPixels(sourcePixels, 0, width, 0, 0, width, height);
-        for (int row = 0; row < height; row++) {
-            for (int col = 0; col < width; col++) {
-                int a = 0, r = 0, g = 0, b = 0;
-                for (int dy = -1; dy <= 1; dy++) {
-                    int y = Math.max(0, Math.min(height - 1, row + dy));
-                    for (int dx = -1; dx <= 1; dx++) {
-                        int x = Math.max(0, Math.min(width - 1, col + dx));
-                        int color = sourcePixels[y * width + x];
-                        a += color >>> 24;
-                        r += color >> 16 & 255;
-                        g += color >> 8 & 255;
-                        b += color & 255;
-                    }
-                }
-                blurredPixels[row * width + col] = (a / 9 << 24) | (r / 9 << 16)
-                        | (g / 9 << 8) | b / 9;
-            }
-        }
-        backdrop.setPixels(blurredPixels, 0, width, 0, 0, width, height);
+        BackdropBlur.apply(backdrop, sourcePixels, blurredPixels, BlurSettings.sampleRadius(getContext(), DOWNSAMPLE));
     }
 
     @Override
@@ -600,33 +576,7 @@ public class FloatingNavigationBar extends LinearLayout {
                         if (itemListener != null) itemListener.onItemSelected(id);
                     }
                 };
-                if (animationsEnabled) {
-                    GradientDrawable pressed = new GradientDrawable();
-                    pressed.setColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_press));
-                    pressed.setCornerRadius(dp(30));
-                    pressed.setAlpha(0);
-                    v.setBackground(pressed);
-                    ValueAnimator fadeIn = ValueAnimator.ofInt(0, 255);
-                    fadeIn.setDuration(55);
-                    fadeIn.addUpdateListener(animation ->
-                            pressed.setAlpha((int) animation.getAnimatedValue()));
-                    fadeIn.start();
-                    v.animate().scaleX(0.97f).scaleY(0.97f).setDuration(55)
-                            .withEndAction(() -> {
-                                select.run();
-                                v.animate().scaleX(1f).scaleY(1f).setDuration(85).start();
-                                ValueAnimator fadeOut = ValueAnimator.ofInt(255, 0);
-                                fadeOut.setDuration(100);
-                                fadeOut.addUpdateListener(animation ->
-                                        pressed.setAlpha((int) animation.getAnimatedValue()));
-                                fadeOut.addListener(new android.animation.AnimatorListenerAdapter() {
-                                    @Override public void onAnimationEnd(android.animation.Animator animation) {
-                                        if (v.getBackground() == pressed) v.setBackground(null);
-                                    }
-                                });
-                                fadeOut.start();
-                            }).start();
-                } else select.run();
+                select.run();
             });
             icon = new ImageView(getContext());
             icon.setImageDrawable(drawable);
@@ -687,7 +637,7 @@ public class FloatingNavigationBar extends LinearLayout {
             float oldWidth = highlightWidth;
             animator = ValueAnimator.ofFloat(0f, 1f);
             animator.setDuration(175);
-            animator.setInterpolator(new OvershootInterpolator(0.65f));
+            animator.setInterpolator(new DecelerateInterpolator());
             animator.addUpdateListener(value -> {
                 float fraction = (float) value.getAnimatedValue();
                 highlightLeft = oldLeft + (left - oldLeft) * fraction;

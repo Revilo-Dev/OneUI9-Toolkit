@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 
 import android.content.Context;
@@ -27,13 +29,13 @@ public class LayoutPreference extends Preference {
     private final View.OnClickListener mClickListener = this::performClick;
 
     public LayoutPreference(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init(context, attrs, 0);
+        super(OneUIPalette.wrap(context, attrs), attrs);
+        init(getContext(), attrs, 0);
     }
 
     public LayoutPreference(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init(context, attrs, defStyleAttr);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
+        init(getContext(), attrs, defStyleAttr);
     }
 
     public LayoutPreference(Context context, int resource) {

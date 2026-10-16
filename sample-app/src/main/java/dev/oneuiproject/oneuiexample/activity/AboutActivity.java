@@ -5,23 +5,17 @@ import dev.oneuiproject.oneui.widget.OneUIPalette;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Color;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.TooltipCompat;
@@ -40,6 +34,14 @@ import dev.oneuiproject.oneui.widget.MaterialColorSettings;
 
 public class AboutActivity extends AppCompatActivity
         implements View.OnClickListener {
+    private android.view.LayoutInflater paletteInflater;
+
+    @Override public android.view.LayoutInflater getLayoutInflater() {
+        if (paletteInflater == null) paletteInflater = dev.oneuiproject.oneui.widget.PaletteInflater
+                .create(this, super.getLayoutInflater());
+        return paletteInflater;
+    }
+
     private boolean mEnableBackToHeader;
     private long mLastClickTime;
 

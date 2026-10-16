@@ -2,9 +2,7 @@ package dev.oneuiproject.oneuiexample.fragment;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.util.TypedValue;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -48,7 +46,13 @@ public class PreferencesFragment extends PreferenceFragmentCompat
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+        seslSetRoundedCorner(false);
         setPreferencesFromResource(R.xml.sample3_preferences, rootKey);
+    }
+
+    @Override protected androidx.recyclerview.widget.RecyclerView.Adapter onCreateAdapter(
+            androidx.preference.PreferenceScreen screen) {
+        return new dev.oneuiproject.oneui.preference.PalettePreferenceGroupAdapter(screen);
     }
 
     @Override public void onDisplayPreferenceDialog(Preference preference) {
@@ -94,7 +98,9 @@ public class PreferencesFragment extends PreferenceFragmentCompat
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        getView().setBackgroundColor(OneUIPalette.color(mContext, R.color.oui_background_color));
+        view.setTag("oneui.palette.background");
+        view.setBackgroundColor(OneUIPalette.get(mContext, OneUIPalette.BACKGROUND));
+        getListView().seslSetFillBottomEnabled(false);
         getListView().seslSetLastRoundedCorner(false);
     }
 
@@ -143,24 +149,24 @@ public class PreferencesFragment extends PreferenceFragmentCompat
 
         SwitchPreferenceCompat materialColors = findPreference(MaterialColorSettings.KEY);
         materialColors.setOnPreferenceChangeListener(this);
-        materialColors.setEnabled(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S);
+        materialColors.setChecked(MaterialColorSettings.isEnabled(mContext));
         createPalettePreferences(materialColors.isChecked());
 
         SeslSwitchPreferenceScreen key2 = findPreference("key2");
         boolean enabled = key2.isChecked();
         key2.setSummary(enabled ? "Enabled" : "Disabled");
-        key2.seslSetSummaryColor(getColoredSummaryColor(enabled));
+        key2.seslSetSummaryColor(getSummaryTextColor());
         key2.setOnPreferenceClickListener(this);
         key2.setOnPreferenceChangeListener(this);
 
         EditTextPreference key4 = findPreference("key4");
-        key4.seslSetSummaryColor(getColoredSummaryColor(key4.getText().length() > 0));
+        key4.seslSetSummaryColor(getSummaryTextColor());
         key4.setOnPreferenceChangeListener(this);
 
         DropDownPreference key5 = findPreference("key5");
-        key5.seslSetSummaryColor(getColoredSummaryColor(true));
+        key5.seslSetSummaryColor(getSummaryTextColor());
         ListPreference key6 = findPreference("key6");
-        key6.seslSetSummaryColor(getColoredSummaryColor(true));
+        key6.seslSetSummaryColor(getSummaryTextColor());
     }
 
     @Override
@@ -201,11 +207,11 @@ public class PreferencesFragment extends PreferenceFragmentCompat
             case "key2":
                 Boolean enabled = (Boolean) newValue;
                 preference.setSummary(enabled ? "Enabled" : "Disabled");
-                preference.seslSetSummaryColor(getColoredSummaryColor(enabled));
+                preference.seslSetSummaryColor(getSummaryTextColor());
                 return true;
             case "key4":
                 String text = (String) newValue;
-                preference.seslSetSummaryColor(getColoredSummaryColor(text.length() > 0));
+                preference.seslSetSummaryColor(getSummaryTextColor());
                 return true;
         }
 
@@ -220,8 +226,8 @@ public class PreferencesFragment extends PreferenceFragmentCompat
     private void createPalettePreferences(boolean materialEnabled) {
         PreferenceCategory category = findPreference("oneui_palette_category");
         boolean dark = OneUIPalette.isDark(mContext);
-        category.setTitle(dark ? "Default OneUI palette · Dark" : "Default OneUI palette · Light");
-        category.setEnabled(!materialEnabled);
+        category.setTitle(dark ? "Custom colors · Dark" : "Custom colors · Light");
+        category.setSummary("Used when the system palette is off, or a component opts out");
         String[] labels = {"Primary", "Secondary", "Background", "Foreground",
                 "Surface", "Surface variant", "Outline", "Error"};
         for (int i = 0; i < OneUIPalette.ROLES.length; i++) {
@@ -246,35 +252,8 @@ public class PreferencesFragment extends PreferenceFragmentCompat
         category.addPreference(reset);
     }
 
-    private ColorStateList getColoredSummaryColor(boolean enabled) {
-        if (enabled) {
-            TypedValue colorPrimaryDark = new TypedValue();
-            mContext.getTheme().resolveAttribute(
-                    R.attr.colorPrimaryDark, colorPrimaryDark, true);
-
-            int[][] states = new int[][] {
-                    new int[] {android.R.attr.state_enabled},
-                    new int[] {-android.R.attr.state_enabled}
-            };
-            int[] colors = new int[] {
-                    Color.argb(0xff,
-                            Color.red(colorPrimaryDark.data),
-                            Color.green(colorPrimaryDark.data),
-                            Color.blue(colorPrimaryDark.data)),
-                    Color.argb(0x4d,
-                            Color.red(colorPrimaryDark.data),
-                            Color.green(colorPrimaryDark.data),
-                            Color.blue(colorPrimaryDark.data))
-            };
-            return new ColorStateList(states, colors);
-        } else {
-            TypedValue outValue = new TypedValue();
-            mContext.getTheme().resolveAttribute(
-                    R.attr.isLightTheme, outValue, true);
-            return mContext.getColorStateList(outValue.data != 0
-                    ? R.color.sesl_secondary_text_light
-                    : R.color.sesl_secondary_text_dark);
-        }
+    private ColorStateList getSummaryTextColor() {
+        return ColorStateList.valueOf(OneUIPalette.secondaryText(mContext));
     }
 
     private void setRelativeLinkCard() {

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- True follows the global OS palette setting; false always uses custom colors. -->
+    <attr name="usesColorPalette" format="boolean" />
+    <declare-styleable name="OneUIComponent">
+        <attr name="usesColorPalette" />
+    </declare-styleable>
 
     <attr name="roundedCorners" format="integer">
         <flag name="none" value="0x00000000" />

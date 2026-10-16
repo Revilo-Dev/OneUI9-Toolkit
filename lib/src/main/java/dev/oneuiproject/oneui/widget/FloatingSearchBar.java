@@ -48,13 +48,6 @@ public class FloatingSearchBar extends FrameLayout {
     private final ImageButton close;
     private final Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF borderBounds = new RectF();
-    private final Runnable refreshBlur = new Runnable() {
-        @Override public void run() {
-            if (!isAttachedToWindow() || !isShown()) return;
-            surface.refreshCapture();
-            postDelayed(this, 32);
-        }
-    };
     private Listener listener;
     private Runnable closeRequested;
     private Runnable voiceRequested;
@@ -73,7 +66,7 @@ public class FloatingSearchBar extends FrameLayout {
 
     public FloatingSearchBar(Context context) { this(context, null); }
     public FloatingSearchBar(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         int minHeight = dp(56);
         setMinimumHeight(minHeight);
         setClipChildren(false);
@@ -88,23 +81,23 @@ public class FloatingSearchBar extends FrameLayout {
         border.setStyle(Paint.Style.STROKE);
         border.setStrokeWidth(Math.max(0.4f, getResources().getDisplayMetrics().density * 0.25f));
         border.setColor(0x60FFFFFF);
-        surface = new GlassSurfaceView(context);
+        surface = new GlassSurfaceView(getContext());
         surface.setCornerRadius(dp(28));
-        surface.setTintColor(OneUIPalette.color(context, R.color.oui_search_glass));
+        surface.setTintColor(OneUIPalette.color(getContext(), R.color.oui_search_glass));
         addView(surface, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        aiSurface = new View(context);
+        aiSurface = new View(getContext());
         aiSurface.setVisibility(GONE);
         addView(aiSurface, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
-        LinearLayout row = new LinearLayout(context);
+        LinearLayout row = new LinearLayout(getContext());
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setOrientation(LinearLayout.HORIZONTAL);
         addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
-        searchIcon = new ImageView(context);
+        searchIcon = new ImageView(getContext());
         searchIcon.setImageResource(R.drawable.oui_ic_search);
         searchIcon.setContentDescription(null);
-        int primary = OneUIPalette.color(context, R.color.oui_primary_text_color);
+        int primary = OneUIPalette.color(getContext(), R.color.oui_primary_text_color);
         ColorStateList iconTint = ColorStateList.valueOf(primary);
         searchIcon.setImageTintList(iconTint);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(24), dp(24));
@@ -112,7 +105,7 @@ public class FloatingSearchBar extends FrameLayout {
         iconParams.rightMargin = dp(12);
         row.addView(searchIcon, iconParams);
 
-        input = new EditText(context);
+        input = new EditText(getContext());
         input.setSingleLine(true);
         input.setGravity(Gravity.CENTER_VERTICAL);
         input.setIncludeFontPadding(false);
@@ -120,7 +113,7 @@ public class FloatingSearchBar extends FrameLayout {
         input.setTextSize(16);
         input.setTextColor(primary);
         input.setHighlightColor(0x33777777);
-        input.setHintTextColor(OneUIPalette.color(context, R.color.oui_floating_nav_secondary));
+        input.setHintTextColor(OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary));
         input.setBackgroundColor(Color.TRANSPARENT);
         input.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         input.setHint("Search");
@@ -138,7 +131,7 @@ public class FloatingSearchBar extends FrameLayout {
             return true;
         });
 
-        close = new ImageButton(context);
+        close = new ImageButton(getContext());
         close.setImageDrawable(new VoiceIconDrawable(false, 2.2f, dp(18)));
         close.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         close.setPadding(dp(8), dp(8), dp(8), dp(8));
@@ -160,7 +153,7 @@ public class FloatingSearchBar extends FrameLayout {
         closeParams.rightMargin = dp(12);
         row.addView(close, closeParams);
         if (attrs != null) {
-            TypedArray options = context.obtainStyledAttributes(attrs, R.styleable.FloatingSearchBar);
+            TypedArray options = getContext().obtainStyledAttributes(attrs, R.styleable.FloatingSearchBar);
             boolean startPersistent = options.getBoolean(
                     R.styleable.FloatingSearchBar_searchPersistent, false);
             boolean startAi = options.getBoolean(R.styleable.FloatingSearchBar_searchAiMode, false);
@@ -168,6 +161,11 @@ public class FloatingSearchBar extends FrameLayout {
             setPersistent(startPersistent);
             setAiMode(startAi);
         }
+        OneUIPalette.observe(this, () -> {
+            searchIcon.setImageTintList(android.content.res.ColorStateList.valueOf(
+                    OneUIPalette.color(getContext(), R.color.oui_primary_text_color)));
+            setAiMode(aiMode);
+        });
     }
 
     @Override protected void dispatchDraw(Canvas canvas) {
@@ -184,20 +182,13 @@ public class FloatingSearchBar extends FrameLayout {
         scheduleBlurRefresh();
     }
 
-    @Override protected void onDetachedFromWindow() {
-        removeCallbacks(refreshBlur);
-        super.onDetachedFromWindow();
-    }
-
     @Override protected void onVisibilityChanged(View changedView, int visibility) {
         super.onVisibilityChanged(changedView, visibility);
         scheduleBlurRefresh();
     }
 
     private void scheduleBlurRefresh() {
-        removeCallbacks(refreshBlur);
-        if (isAttachedToWindow() && isShown())
-            post(refreshBlur);
+        if (surface != null && isAttachedToWindow() && isShown()) surface.refreshCapture();
     }
 
     public void setListener(@Nullable Listener callback) { listener = callback; }
@@ -225,15 +216,12 @@ public class FloatingSearchBar extends FrameLayout {
         searchIcon.setVisibility(enabled ? GONE : VISIBLE);
         input.setPadding(enabled ? dp(24) : 0, 0, 0, 0);
         input.setHint(enabled ? "What are you looking for?" : normalHint);
-        input.setTextColor(enabled ? AI_START : OneUIPalette.color(getContext(), R.color.oui_primary_text_color));
-        input.setHintTextColor(enabled ? AI_START : OneUIPalette.color(getContext(), R.color.oui_floating_nav_secondary));
-        input.post(() -> {
-            input.getPaint().setShader(aiMode ? new LinearGradient(0, 0,
-                    Math.max(1, input.getWidth()), 0, AI_START, AI_END, Shader.TileMode.CLAMP) : null);
-            input.invalidate();
-        });
+        input.setTextColor(OneUIPalette.get(getContext(), OneUIPalette.FOREGROUND));
+        input.setHintTextColor(OneUIPalette.secondaryText(getContext()));
+        input.getPaint().setShader(null);
+        input.invalidate();
         close.setImageDrawable(new VoiceIconDrawable(enabled, 2.2f, dp(18)));
-        close.setImageTintList(null);
+        close.setImageTintList(ColorStateList.valueOf(OneUIPalette.get(getContext(), OneUIPalette.FOREGROUND)));
         if (enabled) {
             GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
                     new int[]{0xFF364B6F, OneUIPalette.color(getContext(), R.color.oui_ai_secondary_surface)});

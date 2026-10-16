@@ -22,7 +22,7 @@ public class FloatingBarSwitcher extends FrameLayout {
 
     public FloatingBarSwitcher(@NonNull Context context) { this(context, null); }
     public FloatingBarSwitcher(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
         setClipChildren(false);
     }
 

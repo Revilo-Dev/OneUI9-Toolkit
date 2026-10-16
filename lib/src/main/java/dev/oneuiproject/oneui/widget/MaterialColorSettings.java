@@ -2,7 +2,6 @@ package dev.oneuiproject.oneui.widget;
 
 import android.app.Activity;
 import android.content.Context;
-import android.os.Build;
 import android.graphics.drawable.ColorDrawable;
 
 import androidx.annotation.NonNull;
@@ -10,14 +9,15 @@ import androidx.preference.PreferenceManager;
 
 import dev.oneuiproject.oneui.design.R;
 
-/** App-wide switch between the One UI palette and Android wallpaper accent colors. */
+/** App-wide switch between native device theming and the custom One UI colors. */
 public final class MaterialColorSettings {
-    public static final String KEY = "global_material_color_palette";
+    public static final String KEY = "global_use_color_palette";
 
     private MaterialColorSettings() { }
 
     public static boolean isEnabled(@NonNull Context context) {
-        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(KEY, false);
+        // The old off state already followed Samsung's OS theme. Preserve it on upgrade.
+        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(KEY, true);
     }
 
     public static void setEnabled(@NonNull Context context, boolean enabled) {
@@ -27,8 +27,10 @@ public final class MaterialColorSettings {
 
     /** Call before inflating an activity's views. A recreated activity picks up changes. */
     public static void applyTheme(@NonNull Activity activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isEnabled(activity))
-            activity.getTheme().applyStyle(R.style.OneUIMaterialPaletteOverlay, true);
+        OneUIPalette.migrateDefaults(activity);
+        // Keep the device's native SESL theme when enabled; do not replace it with Monet.
+        if (!isEnabled(activity))
+            activity.getTheme().applyStyle(R.style.OneUICustomPaletteOverlay, true);
         int background = OneUIPalette.color(activity, R.color.oui_round_and_bgcolor);
         activity.getWindow().setBackgroundDrawable(new ColorDrawable(background));
         activity.getWindow().setStatusBarColor(background);
@@ -37,8 +39,6 @@ public final class MaterialColorSettings {
 
     /** Resolves the active primary color for components that draw their own selection surface. */
     public static int accentColor(@NonNull Context context, int fallback) {
-        return isEnabled(context) || PreferenceManager.getDefaultSharedPreferences(context)
-                .contains(OneUIPalette.key(OneUIPalette.PRIMARY, OneUIPalette.isDark(context)))
-                ? OneUIPalette.get(context, OneUIPalette.PRIMARY) : fallback;
+        return OneUIPalette.get(context, OneUIPalette.PRIMARY);
     }
 }

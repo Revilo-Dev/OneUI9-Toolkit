@@ -42,6 +42,7 @@ public class OneUISlider extends View {
     private int thumbFillColor;
     private int tickColor;
     private int warningAreaColor;
+    private boolean customActive, customTrack, customThumb;
     private Drawable leadingIcon;
     private OnValueChangeListener listener;
 
@@ -50,14 +51,14 @@ public class OneUISlider extends View {
     public OneUISlider(Context context, @Nullable AttributeSet attrs) { this(context, attrs, 0); }
 
     public OneUISlider(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        activeColor = OneUIPalette.get(context, OneUIPalette.PRIMARY);
-        trackColor = OneUIPalette.color(context, R.color.oui_slider_track_color);
-        thumbFillColor = OneUIPalette.get(context, OneUIPalette.BACKGROUND);
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr);
+        activeColor = OneUIPalette.get(getContext(), OneUIPalette.PRIMARY);
+        trackColor = OneUIPalette.color(getContext(), R.color.oui_slider_track_color);
+        thumbFillColor = OneUIPalette.get(getContext(), OneUIPalette.BACKGROUND);
         tickColor = color(R.color.oui_slider_tick_color);
         warningAreaColor = color(R.color.oui_slider_warning_area_color);
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.OneUISlider,
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.OneUISlider,
                     defStyleAttr, 0);
             minValue = a.getInt(R.styleable.OneUISlider_minValue, minValue);
             maxValue = a.getInt(R.styleable.OneUISlider_maxValue, maxValue);
@@ -71,6 +72,9 @@ public class OneUISlider extends View {
             activeColor = a.getColor(R.styleable.OneUISlider_sliderActiveColor, activeColor);
             trackColor = a.getColor(R.styleable.OneUISlider_sliderTrackColor, trackColor);
             thumbFillColor = a.getColor(R.styleable.OneUISlider_thumbFillColor, thumbFillColor);
+            customActive = a.hasValue(R.styleable.OneUISlider_sliderActiveColor);
+            customTrack = a.hasValue(R.styleable.OneUISlider_sliderTrackColor);
+            customThumb = a.hasValue(R.styleable.OneUISlider_thumbFillColor);
             leadingIcon = a.getDrawable(R.styleable.OneUISlider_leadingIcon);
             a.recycle();
         }
@@ -79,6 +83,12 @@ public class OneUISlider extends View {
         setFocusable(true);
         setClickable(true);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+        OneUIPalette.observe(this, () -> {
+            if (!customActive) activeColor = OneUIPalette.get(getContext(), OneUIPalette.PRIMARY);
+            if (!customTrack) trackColor = OneUIPalette.get(getContext(), OneUIPalette.OUTLINE);
+            if (!customThumb) thumbFillColor = OneUIPalette.get(getContext(), OneUIPalette.BACKGROUND);
+            invalidate();
+        });
     }
 
     public void setRange(int min, int max) {
@@ -107,10 +117,10 @@ public class OneUISlider extends View {
     public void setHapticEnabled(boolean enabled) { hapticEnabled = enabled; }
     public void setWarningValue(int threshold) { warningValue = threshold; invalidate(); }
     public void setWarningAreaColor(int color) { warningAreaColor = color; invalidate(); }
-    public void setActiveColor(int color) { activeColor = color; invalidate(); }
+    public void setActiveColor(int color) { customActive = true; activeColor = color; invalidate(); }
     public int getActiveColor() { return activeColor; }
-    public void setTrackColor(int color) { trackColor = color; invalidate(); }
-    public void setThumbFillColor(int color) { thumbFillColor = color; invalidate(); }
+    public void setTrackColor(int color) { customTrack = true; trackColor = color; invalidate(); }
+    public void setThumbFillColor(int color) { customThumb = true; thumbFillColor = color; invalidate(); }
     public void setTickColor(int color) { tickColor = color; invalidate(); }
     public void setLeadingIcon(@Nullable Drawable icon) { leadingIcon = icon; invalidate(); }
     public void setOnValueChangeListener(@Nullable OnValueChangeListener callback) { listener = callback; }
@@ -193,7 +203,8 @@ public class OneUISlider extends View {
         canvas.drawCircle(thumbX, centerY, dp(9), paint);
         if (leadingIcon != null) {
             Drawable icon = leadingIcon.mutate();
-            icon.setTint(currentActiveColor());
+            icon.setTint(warningValue >= minValue && value >= warningValue
+                    ? currentActiveColor() : OneUIPalette.get(getContext(), OneUIPalette.FOREGROUND));
             int left = getPaddingLeft();
             icon.setBounds(left, centerY - dp(12), left + dp(24), centerY + dp(12));
             icon.draw(canvas);

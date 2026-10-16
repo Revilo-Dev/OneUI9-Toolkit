@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -13,7 +15,6 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
-import androidx.core.content.ContextCompat;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
@@ -36,8 +37,8 @@ public class TipsCardPreference extends Preference {
 
     public TipsCardPreference(@NonNull Context context, @Nullable AttributeSet attrs,
                                 int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-        mContext = context;
+        super(OneUIPalette.wrap(context, attrs), attrs, defStyleAttr, defStyleRes);
+        mContext = getContext();
         setSelectable(false);
         setLayoutResource(R.layout.oui_preference_tips_layout);
         mTextColor = dev.oneuiproject.oneui.widget.OneUIPalette.color(mContext,

@@ -1,5 +1,7 @@
 package dev.oneuiproject.oneui.preference;
 
+import dev.oneuiproject.oneui.widget.OneUIPalette;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
@@ -21,13 +23,13 @@ public class InsetPreferenceCategory extends PreferenceCategory {
     }
 
     public InsetPreferenceCategory(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        super(OneUIPalette.wrap(context, attrs), attrs);
 
-        mHeight = context.getResources()
+        mHeight = getContext().getResources()
                 .getDimensionPixelSize(R.dimen.sesl_list_subheader_min_height);
 
         if (attrs != null) {
-            TypedArray a = context.obtainStyledAttributes(attrs,
+            TypedArray a = getContext().obtainStyledAttributes(attrs,
                     R.styleable.InsetPreferenceCategory);
             mHeight = a.getDimensionPixelSize(
                     R.styleable.InsetPreferenceCategory_height,

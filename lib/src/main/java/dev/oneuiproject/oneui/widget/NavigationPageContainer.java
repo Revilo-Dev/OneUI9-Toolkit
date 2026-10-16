@@ -27,8 +27,8 @@ public class NavigationPageContainer extends FrameLayout {
 
     public NavigationPageContainer(Context context) { this(context, null); }
     public NavigationPageContainer(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
-        touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        super(OneUIPalette.wrap(context, attrs), attrs);
+        touchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
     }
 
     public void setSwipeEnabled(boolean enabled) { swipeEnabled = enabled; }
